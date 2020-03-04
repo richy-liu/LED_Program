@@ -11,7 +11,8 @@ extern "C" {
 #define LED_COMMS_CHANNEL        RMT_CHANNEL_0
 
 void LED_Comms_Init(void);
-void LED_Comms_Send(LED_Data** LEDData);
+uint8_t* LED_Comms_Get_Tx_Buffer(void);
+void LED_Comms_Send(void);
 
 #ifdef __cplusplus
 }

@@ -5,12 +5,12 @@
 extern "C" {
 #endif
 
-#define NUMBER_OF_LEDS          200
+#define NUMBER_OF_LEDS          10
 
 typedef struct LED_Data {
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
+    uint8_t* red;
+    uint8_t* green;
+    uint8_t* blue;
 } LED_Data;
 
 void LED_Init(void);
