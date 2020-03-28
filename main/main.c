@@ -12,12 +12,21 @@
 #include "freertos/task.h"
 #include "esp_system.h"
 #include "esp_spi_flash.h"
+#include "nvs_flash.h"
 #include "driver/gpio.h"
 
 #include "LED.h"
+#include "WiFi.h"
 
 void app_main(void)
 {
+    esp_err_t ret = nvs_flash_init();
+
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+
     printf("Hello world!\n");
     //
     // /* Print chip information */
@@ -39,29 +48,25 @@ void app_main(void)
     gpio_pad_select_gpio(5);
     /* Set the GPIO as a push/pull output */
     gpio_set_direction(5, GPIO_MODE_OUTPUT);
-
     gpio_set_level(5, 0);
 
-    LED_Init();
+    UBaseType_t highWaterMark;
+    TaskHandle_t LEDTaskHandle = NULL;
+    TaskHandle_t WiFiTaskHandle = NULL;
 
-    LED_Task();
+    xTaskCreate(LED_Task, "LED_Task", 4096, NULL, 1, &LEDTaskHandle);
+    xTaskCreate(WiFi_Task, "WiFi_Task", 2048, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
 
     while(1) {
-        /* Blink off (output low) */
-	// printf("Turning off the LED\n");
-        // gpio_set_level(BLINK_GPIO, 0);
+        highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
+        printf("LED High Water Mark: %d\n", highWaterMark);
+        highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
+        printf("WiFi High Water Mark: %d\n", highWaterMark);
+
+        // gpio_set_level(5, 0);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        // gpio_set_level(5, 1);
         // vTaskDelay(1000 / portTICK_PERIOD_MS);
-        /* Blink on (output high) */
-	// printf("Turning on the LED\n");
-
-
-
-        gpio_set_level(5, 0);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        gpio_set_level(5, 1);
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
-        printf("Hello world!\n");
-
     }
 
     esp_restart();

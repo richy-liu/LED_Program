@@ -4,6 +4,8 @@
 #include "esp_system.h"
 #include "driver/gpio.h"
 #include "driver/rmt.h"
+#include "freertos/FreeRTOS.h"
+#include "freertos/task.h"
 
 #include "LED_Comms.h"
 #include "LED.h"
@@ -115,6 +117,8 @@ uint8_t* LED_Comms_Get_Tx_Buffer(void)
 
 void LED_Comms_Send(void)
 {
+    // vTaskSuspendAll();
     rmt_write_sample(LED_COMMS_CHANNEL, txBuffer, (NUMBER_OF_LEDS * 3), true);
+    // xTaskResumeAll();
     rmt_wait_tx_done(LED_COMMS_CHANNEL, pdMS_TO_TICKS(1000));
 }
