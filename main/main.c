@@ -10,13 +10,62 @@
 #include "sdkconfig.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 #include "esp_system.h"
 #include "esp_spi_flash.h"
 #include "nvs_flash.h"
 #include "driver/gpio.h"
 
 #include "LED.h"
+#include "Colour_Defines.h"
+#include "Pattern_Defines.h"
+#include "Server.h"
 #include "WiFi.h"
+
+TaskHandle_t LEDTaskHandle = NULL;
+TaskHandle_t WiFiTaskHandle = NULL;
+TaskHandle_t ServerTaskHandle = NULL;
+TaskHandle_t WaterMarkTaskHandle = NULL;
+
+void WaterMark_Task(void *pvParameters)
+{
+    UBaseType_t highWaterMark;
+
+    while(1) {
+        if (LEDTaskHandle)
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
+            printf("LED High Water Mark: %d\n", highWaterMark);
+        }
+        if (WiFiTaskHandle)
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
+            printf("WiFi High Water Mark: %d\n", highWaterMark);
+        }
+        if (ServerTaskHandle)
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(ServerTaskHandle);
+            printf("Server High Water Mark: %d\n", highWaterMark);
+        }
+        if (Server_Get_HTTP_Task_Handle())
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(Server_Get_HTTP_Task_Handle());
+            printf("HTTP High Water Mark: %d\n", highWaterMark);
+        }
+        if (WaterMarkTaskHandle)
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(WaterMarkTaskHandle);
+            printf("Self High Water Mark: %d\n", highWaterMark);
+        }
+
+        printf("\n");
+
+        // gpio_set_level(5, 0);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        // gpio_set_level(5, 1);
+        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
+}
 
 void app_main(void)
 {
@@ -27,9 +76,8 @@ void app_main(void)
         ret = nvs_flash_init();
     }
 
-    printf("Hello world!\n");
-    //
-    // /* Print chip information */
+    Pattern_Initialise();
+
     // esp_chip_info_t chip_info;
     // esp_chip_info(&chip_info);
     // printf("This is %s chip with %d CPU cores, WiFi%s%s, ",
@@ -45,28 +93,34 @@ void app_main(void)
     //
     // fflush(stdout);
 
-    gpio_pad_select_gpio(5);
-    /* Set the GPIO as a push/pull output */
     gpio_set_direction(5, GPIO_MODE_OUTPUT);
-    gpio_set_level(5, 0);
 
-    UBaseType_t highWaterMark;
-    TaskHandle_t LEDTaskHandle = NULL;
-    TaskHandle_t WiFiTaskHandle = NULL;
+    xTaskCreate(WiFi_Task, "WiFi_Task", 4096, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
+    xTaskCreate(Server_Task, "Server_Task", 8192, NULL, 1, &ServerTaskHandle);
+    xTaskCreate(LED_Task, "LED_Task", 4096, NULL, 3, &LEDTaskHandle);
+    xTaskCreate(WaterMark_Task, "WaterMark_Task", 4096, NULL, tskIDLE_PRIORITY, &WaterMarkTaskHandle);
 
-    xTaskCreate(LED_Task, "LED_Task", 4096, NULL, 1, &LEDTaskHandle);
-    xTaskCreate(WiFi_Task, "WiFi_Task", 2048, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
+    while (1)
+    {
+        // portTICK_PERIOD_MS == 1
 
-    while(1) {
-        highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
-        printf("LED High Water Mark: %d\n", highWaterMark);
-        highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
-        printf("WiFi High Water Mark: %d\n", highWaterMark);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
 
-        // gpio_set_level(5, 0);
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
-        // gpio_set_level(5, 1);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
+        xQueueSendToBack(LEDConfig_Queue, &Pattern_Red_Green_Blue, portMAX_DELAY);
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+        xQueueSendToBack(LEDConfig_Queue, &Pattern_Aqua_Wave, portMAX_DELAY);
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
+
+        xQueueSendToBack(LEDConfig_Queue, &Pattern_Rainbow, portMAX_DELAY);
+
+        // vTaskDelay(portMAX_DELAY);
+
+        // extern const LED_Pattern *Pattern_Rainbow;
+        // extern const LED_Pattern *Pattern_Red_Green_Blue;
+        // extern const LED_Pattern *Pattern_Aqua_Wave;
     }
 
     esp_restart();

@@ -7,39 +7,59 @@ extern "C" {
 
 #include <stdint.h>
 
-#define NUMBER_OF_LEDS          30
+#include "freertos/FreeRTOS.h"
+#include "freertos/queue.h"
+
+#define NUMBER_OF_LEDS          20
+#define MAXIMUM_COLOURS         10
 #define LAST_LED_INDEX          (NUMBER_OF_LEDS - 1)
 
-typedef struct LED_Data {
+typedef struct LED_Data
+{
     uint8_t* red;
     uint8_t* green;
     uint8_t* blue;
 } LED_Data;
 
-typedef struct LED_Colour_Raw {
+typedef struct LED_Colour_RGB
+{
     uint8_t red;
     uint8_t green;
     uint8_t blue;
-} LED_Colour_Raw;
+} LED_Colour_RGB;
 
-typedef struct LED_Colour {
+typedef struct LED_Colour
+{
     uint8_t hue;
     uint8_t saturation;
     uint8_t value;
 } LED_Colour;
 
-enum Pattern_Type
+enum LED_Pattern_Type
 {
     Pattern_Off,
     Pattern_Repeating,
     Pattern_Wave
 };
 
+typedef struct LED_Pattern
+{
+    enum LED_Pattern_Type patternType;
+    uint16_t period;
+    LED_Colour** colours;
+    uint8_t numberOfColours;
+
+    uint8_t direction;
+    uint8_t cycles;
+} LED_Pattern;
+
+extern QueueHandle_t LEDConfig_Queue, LEDPeriod_Queue, LEDBrightness_Queue;
+
 void LED_Init(void);
 void LED_Turn_Off(void);
 void LED_Task(void *pvParameters);
-void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours, uint8_t brightness);
-void LED_Create_Wave(LED_Colour* colours[], int numberOfColours, uint8_t brightness);
+void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours);
+void LED_Create_Wave(LED_Colour* colours[], int numberOfColours);
 void LED_Shift_Forward(void);
 void LED_Shift_Backward(void);
 

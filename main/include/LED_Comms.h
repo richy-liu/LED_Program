@@ -1,5 +1,5 @@
-#ifndef LED_Comms_H_
-#define LED_Comms_H_
+#ifndef LED_COMMS_H_
+#define LED_COMMS_H_
 
 #ifdef __cplusplus
 extern "C" {

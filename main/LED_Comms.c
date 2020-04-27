@@ -105,7 +105,7 @@ void LED_Comms_Init(void)
     t1h_ticks = counterClockMHz * T1H_NS / 1e3;
     t1l_ticks = counterClockMHz * T1L_NS / 1e3;
 
-    printf("ticks: %u, %u, %u, %u, %uMHz\n", t0h_ticks, t0l_ticks, t1h_ticks, t1l_ticks, counterClockMHz);
+    // printf("ticks: %u, %u, %u, %u, %uMHz\n", t0h_ticks, t0l_ticks, t1h_ticks, t1l_ticks, counterClockMHz);
 
     rmt_translator_init(LED_COMMS_CHANNEL, (sample_to_rmt_t) LED_Comms_rmt_adapter);
 }

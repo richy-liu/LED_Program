@@ -43,10 +43,17 @@ LED_Colour Black = {
     .value = 0
 };
 
+LED_Colour White = {
+    .hue = 0,
+    .saturation = 0,
+    .value = 255
+};
+
 LED_Colour *Colour_Red = &Red;
 LED_Colour *Colour_Green = &Green;
 LED_Colour *Colour_Blue = &Blue;
 LED_Colour *Colour_Cyan = &Cyan;
 LED_Colour *Colour_Magenta = &Magenta;
 LED_Colour *Colour_Yellow = &Yellow;
+LED_Colour *Colour_White = &White;
 LED_Colour *Colour_Black = &Black;

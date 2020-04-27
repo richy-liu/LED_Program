@@ -22,10 +22,15 @@
 
 #include "WiFi.h"
 
-// #define AP_NAME      "TelstraE4E02D"
-// #define AP_PASSWORD      "qen4bkur47"
-#define AP_NAME      "Telstra0A7E"
-#define AP_PASSWORD      "1557083374"
+/* The examples use WiFi configuration that you can set via project configuration menu
+
+   If you'd rather not, just change the below entries to strings with
+   the config you want - ie #define EXAMPLE_WIFI_SSID "mywifissid"
+*/
+#define AP_NAME      "TelstraE4E02D"
+#define AP_PASSWORD      "qen4bkur47"
+// #define AP_NAME      "Telstra0A7E"
+// #define AP_PASSWORD      "1557083374"
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;
