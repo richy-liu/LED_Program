@@ -1,49 +1,52 @@
 #include "Colour_Defines.h"
 #include "LED.h"
 
-LED_Colour Red = {
-    .hue = (0 *255+180)/360,
+// The hue is normalised to 255. The calculations are done based on a 360 degree
+// scaled to 255 and rounded to the nearest integer.
+
+static LED_Colour Red = {
+    .hue = (0 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Green = {
-    .hue = (120 *255+180)/360,
+static LED_Colour Green = {
+    .hue = (120 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Blue = {
-    .hue = (240 *255+180)/360,
+static LED_Colour Blue = {
+    .hue = (240 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Cyan = {
-    .hue = (180 *255+180)/360,
+static LED_Colour Cyan = {
+    .hue = (180 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Magenta = {
-    .hue = (300 *255+180)/360,
+static LED_Colour Magenta = {
+    .hue = (300 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Yellow = {
-    .hue = (60 *255+180)/360,
+static LED_Colour Yellow = {
+    .hue = (60 * 255 + 180) / 360,
     .saturation = 255,
     .value = 255
 };
 
-LED_Colour Black = {
+static LED_Colour Black = {
     .hue = 0,
     .saturation = 255,
     .value = 0
 };
 
-LED_Colour White = {
+static LED_Colour White = {
     .hue = 0,
     .saturation = 0,
     .value = 255

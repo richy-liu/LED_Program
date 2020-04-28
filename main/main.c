@@ -104,18 +104,23 @@ void app_main(void)
     {
         // portTICK_PERIOD_MS == 1
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
 
         xQueueSendToBack(LEDConfig_Queue, &Pattern_Red_Green_Blue, portMAX_DELAY);
 
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
-
-        xQueueSendToBack(LEDConfig_Queue, &Pattern_Aqua_Wave, portMAX_DELAY);
-
-        vTaskDelay(10000 / portTICK_PERIOD_MS);
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
 
         xQueueSendToBack(LEDConfig_Queue, &Pattern_Rainbow, portMAX_DELAY);
 
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+
+        xQueueSendToBack(LEDConfig_Queue, &Pattern_Aqua_Wave, portMAX_DELAY);
+
+        // vTaskDelay(5000 / portTICK_PERIOD_MS);
+        //
+        // xQueueSendToBack(LEDConfig_Queue, &Pattern_White, portMAX_DELAY);
+
+        // xQueueSendToBack(LEDConfig_Queue, &Pattern_France, portMAX_DELAY);
         // vTaskDelay(portMAX_DELAY);
 
         // extern const LED_Pattern *Pattern_Rainbow;

@@ -125,15 +125,11 @@ void LED_Init(void)
 {
     LED_Comms_Init();
 
-    // currentPattern = (LED_Pattern *) currentPatternRaw;
-    // currentPattern->colours = currentColours;
     currentPattern = malloc(sizeof(LED_Pattern));
 
-    memcpy(currentPattern, Pattern_Rainbow, sizeof(LED_Pattern));
-
-    LEDConfig_Queue = xQueueCreate(3, sizeof(LED_Pattern));
-    LEDPeriod_Queue = xQueueCreate(3, sizeof(uint16_t));
-    LEDBrightness_Queue = xQueueCreate(3, sizeof(uint8_t));
+    LEDConfig_Queue = xQueueCreate(5, sizeof(LED_Pattern));
+    LEDPeriod_Queue = xQueueCreate(5, sizeof(uint16_t));
+    LEDBrightness_Queue = xQueueCreate(5, sizeof(uint8_t));
 
     uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
     int offset;
@@ -166,10 +162,12 @@ void LED_Create_Pattern(void)
 
 void LED_Turn_Off(void)
 {
-    uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
-    memset(txBuffer, 0, 3 * NUMBER_OF_LEDS);
+    // uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
+    // memset(txBuffer, 0, 3 * NUMBER_OF_LEDS);
+    //
+    // LED_Comms_Send();
 
-    LED_Comms_Send();
+    memcpy(currentPattern, Pattern_Black, sizeof(LED_Pattern));
 }
 
 void LED_Shift_Forward(void)
@@ -406,6 +404,9 @@ void LED_Task(void *pvParameters)
 {
 
     LED_Init();
+
+    // LED_Turn_Off();
+    memcpy(currentPattern, Pattern_Rainbow, sizeof(LED_Pattern));
 
     if (!currentPattern)
     {
