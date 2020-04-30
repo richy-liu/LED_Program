@@ -37,9 +37,8 @@ typedef struct LED_Colour
 
 enum LED_Pattern_Type
 {
-    Pattern_Off,
-    Pattern_Repeating,
-    Pattern_Wave
+    Pattern_Type_Repeating,
+    Pattern_Type_Wave
 };
 
 typedef struct LED_Pattern

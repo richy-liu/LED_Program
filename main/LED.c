@@ -147,13 +147,10 @@ void LED_Create_Pattern(void)
 {
     switch (currentPattern->patternType)
     {
-        case Pattern_Off:
-            LED_Turn_Off();
-            break;
-        case Pattern_Repeating:
+        case Pattern_Type_Repeating:
             LED_Create_Repeating(currentPattern->colours, currentPattern->numberOfColours);
             break;
-        case Pattern_Wave:
+        case Pattern_Type_Wave:
             LED_Create_Wave(currentPattern->colours, currentPattern->numberOfColours);
             break;
         default: break;
@@ -167,7 +164,7 @@ void LED_Turn_Off(void)
     //
     // LED_Comms_Send();
 
-    memcpy(currentPattern, Pattern_Black, sizeof(LED_Pattern));
+    memcpy(currentPattern, Pattern_Off, sizeof(LED_Pattern));
 }
 
 void LED_Shift_Forward(void)
@@ -175,7 +172,7 @@ void LED_Shift_Forward(void)
     LED_Colour_RGB colourTemp;
     uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
 
-    if (currentPattern->patternType == Pattern_Repeating)
+    if (currentPattern->patternType == Pattern_Type_Repeating)
     {
         colourTemp.red = *LEDData[currentPattern->numberOfColours - 1]->red;
         colourTemp.green = *LEDData[currentPattern->numberOfColours - 1]->green;
@@ -205,7 +202,7 @@ void LED_Shift_Backward(void)
     LED_Colour_RGB colourTemp;
     uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
 
-    if (currentPattern->patternType == Pattern_Repeating)
+    if (currentPattern->patternType == Pattern_Type_Repeating)
     {
         colourTemp.red = *LEDData[currentPattern->numberOfColours - 1]->red;
         colourTemp.green = *LEDData[currentPattern->numberOfColours - 1]->green;
@@ -405,8 +402,8 @@ void LED_Task(void *pvParameters)
 
     LED_Init();
 
-    // LED_Turn_Off();
-    memcpy(currentPattern, Pattern_Rainbow, sizeof(LED_Pattern));
+    LED_Turn_Off();
+    // memcpy(currentPattern, Pattern_Black, sizeof(LED_Pattern));
 
     if (!currentPattern)
     {

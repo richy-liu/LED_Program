@@ -17,8 +17,11 @@
 #include <esp_http_server.h>
 #include <sys/param.h>
 
+#include "Pattern_Defines.h"
 #include "Server.h"
 #include "WiFi.h"
+
+#define PRESET_STR              ("/?preset=PRESET")
 
 static const char *TAG = "Server";
 
@@ -176,7 +179,41 @@ static esp_err_t null_handler(httpd_req_t *req)
 /* An HTTP GET handler */
 static esp_err_t home_handler(httpd_req_t *req)
 {
-    const char* resp_str = (const char*) req->user_ctx;
+    // const char* resp_str = (const char*) req->user_ctx;
+
+    // printf("%s\n",req->uri);
+    if (LEDConfig_Queue)
+    {
+        if (!strncmp(req->uri, PRESET_STR, strlen(PRESET_STR)))
+        {
+            char* c;
+            uint8_t index = strtol(req->uri + strlen(PRESET_STR), &c, 10);
+            if (index < NUMBER_OF_PRESETS)
+            {
+                // xQueueSendToBackFromISR(LEDConfig_Queue, Pattern_Presets + index, NULL);
+                xQueueSendToBackFromISR(LEDConfig_Queue, &(Pattern_Presets[index]), NULL);
+            }
+
+            // char* c;
+            // switch(strtol(req->uri + strlen(PRESET_STR), &c, 10))
+            // {
+            //     case 0:
+            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Red_Green_Blue, NULL);
+            //         break;
+            //     case 1:
+            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Rainbow, NULL);
+            //         break;
+            //     case 2:
+            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Aqua_Wave, NULL);
+            //         break;
+            //     case 3:
+            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Black, NULL);
+            //         break;
+            //     default: break;
+            // }
+        }
+    }
+
     // httpd_resp_send(req, resp_str, strlen(resp_str));
     int counterHeader = 0, counterResponse = 0;
     char sHeader[500], sResponse[5000];
@@ -208,7 +245,7 @@ static esp_err_t home_handler(httpd_req_t *req)
 //         counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
 //             counterResponse += sprintf(sResponse + counterResponse, "%s", "</p>");
 //     counterResponse += sprintf(sResponse + counterResponse, "%s", "<form action=\"?sCmd\" >");    // ?sCmd forced the '?' at the right spot
-//     counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>Brightness &nbsp;&nbsp");  // perhaps we can show here the current value
+//     counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>Brightness &nbsp&nbsp");  // perhaps we can show here the current value
 //     counterResponse += sprintf(sResponse + counterResponse, "%s", "40");    // this is just a scale depending on the max value; round for better readability
 //     counterResponse += sprintf(sResponse + counterResponse, "%s", " %");
 //     counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>");
@@ -228,7 +265,7 @@ static esp_err_t home_handler(httpd_req_t *req)
 // counterResponse += sprintf(sResponse + counterResponse, "%s", "DemoReel 100 by Mark Kriegsman<BR>");
 // counterResponse += sprintf(sResponse + counterResponse, "%s", "Webserver by Stefan Thesen<BR>");
 // counterResponse += sprintf(sResponse + counterResponse, "%s", "<font color=\"#FFFFF0\">");
-// counterResponse += sprintf(sResponse + counterResponse, "%s", "Gyro Gearloose &nbsp;&nbsp;Feb 2016<BR>");
+// counterResponse += sprintf(sResponse + counterResponse, "%s", "Gyro Gearloose &nbsp&nbspFeb 2016<BR>");
 // counterResponse += sprintf(sResponse + counterResponse, "%s", "</body></html>");
 //
 // counterHeader += sprintf(sHeader + counterHeader, "%s", "HTTP/1.1 200 OK\r\n");
@@ -240,7 +277,7 @@ static esp_err_t home_handler(httpd_req_t *req)
 // counterHeader += sprintf(sHeader + counterHeader, "%s", "\r\n");
 
 
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<html><head><title>LED Me 1.0</title>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<html><head><title>LED Controller</title>");
     counterResponse += sprintf(sResponse + counterResponse, "%s", "<style type=\"text/css\">");
     counterResponse += sprintf(sResponse + counterResponse, "%s", ".form-control {");
     counterResponse += sprintf(sResponse + counterResponse, "%s", " width:55px;");
@@ -261,67 +298,75 @@ static esp_err_t home_handler(httpd_req_t *req)
 
 // /*  this creates a list with ON / OFF buttons
 //     // &nbsp is a non-breaking space; moves next character over
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Rainbow &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION1ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION1OFF\"><button>--OFF--</button></a><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Rainbow Glitter<a href=\"?pin=FUNCTION2ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION2OFF\"><button>--OFF--</button></a><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Confetti &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION3ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION3OFF\"><button>--OFF--</button></a><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Sinelon &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION4ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION4OFF\"><button>--OFF--</button></a><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Juggle&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION5ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION5OFF\"><button>--OFF--</button></a></p>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>BPM&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION6ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION6OFF\"><button>--OFF--</button></a></p>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Function 7&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<a href=\"?pin=FUNCTION7ON\"><button>--ON--</button></a>&nbsp;<a href=\"?pin=FUNCTION7OFF\"><button>--OFF--</button></a></p><br>");
+    for (int i = 0; i < NUMBER_OF_PRESETS; i++)
+    {
+        counterResponse += sprintf(sResponse + counterResponse, "<p><a href=\"?preset=PRESET%d\"><button style=\"width: 150px;\">%s</button></a><br></p>", i, Pattern_Pattern_Names[i]);
+
+    }
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET0\"><button style=\"width: 150px;\">Rainbow</button></a><br></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET1\"><button style=\"width: 150px;\">Red-Green-Blue</button></a><br></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET2\"><button style=\"width: 150px;\">Aqua Wave</button></a><br></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET3\"><button style=\"width: 150px;\">Off</button></a><br></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Rainbow Glitter<a href=\"?preset=FUNCTION2ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION2OFF\"><button>--OFF--</button></a><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Confetti &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<a href=\"?preset=FUNCTION3ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION3OFF\"><button>--OFF--</button></a><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Sinelon &nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<a href=\"?preset=FUNCTION4ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION4OFF\"><button>--OFF--</button></a><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Juggle&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<a href=\"?preset=FUNCTION5ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION5OFF\"><button>--OFF--</button></a></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>BPM&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<a href=\"?preset=FUNCTION6ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION6OFF\"><button>--OFF--</button></a></p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>Function 7&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp&nbsp<a href=\"?preset=FUNCTION7ON\"><button>--ON--</button></a>&nbsp<a href=\"?preset=FUNCTION7OFF\"><button>--OFF--</button></a></p><br>");
 // */
 //  This is a nice drop down menu
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=+1>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<form class=\"form-inline\">");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<div class=\"form-group col-md-3\">");
-    //counterResponse += sprintf(sResponse + counterResponse, "%s", "<label for=\"styles\">Select Animation:</label>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<select class=\"form-control form-control-sm\" name=\"sCmd\" size=\"5\">");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1OFF\"selected>All Off</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1ON\">Rainbow</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION2ON\">Rainbow Glitter</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION3ON\">Confetti</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION4ON\">Fire2012</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION5ON\">Juggle</option>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION6ON\">BPM</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION7ON\">JustRed</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION8ON\">JustGreen</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION9ON\">JustBlue</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION10ON\">JustPurple</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION11ON\">JustOrange</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION12ON\">Fillnoise8</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION13ON\">Noise16_1</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION14ON\">Noise16_2</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION15ON\">Noise16_3</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION16ON\">Lightning</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION17ON\">Blur</option><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</select>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<br><br>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<button type=\"submit\" class=\"btn btn-primary\">Select</button>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=-1>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=+1>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<form class=\"form-inline\">");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<div class=\"form-group col-md-3\">");
+    // //counterResponse += sprintf(sResponse + counterResponse, "%s", "<label for=\"styles\">Select Animation:</label>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<select class=\"form-control form-control-sm\" name=\"sCmd\" size=\"5\">");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1OFF\"selected>All Off</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1ON\">Rainbow</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION2ON\">Rainbow Glitter</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION3ON\">Confetti</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION4ON\">Fire2012</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION5ON\">Juggle</option>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION6ON\">BPM</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION7ON\">JustRed</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION8ON\">JustGreen</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION9ON\">JustBlue</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION10ON\">JustPurple</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION11ON\">JustOrange</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION12ON\">Fillnoise8</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION13ON\">Noise16_1</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION14ON\">Noise16_2</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION15ON\">Noise16_3</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION16ON\">Lightning</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION17ON\">Blur</option><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</select>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<br><br>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<button type=\"submit\" class=\"btn btn-primary\">Select</button>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=-1>");
 
     // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     // Slider          this works, however I got http://192.168.4.1/sCmd?FUNCTION_200=80  and the page was not found
     //                 I needed to take the FUNCTION_200=80 apart and call only FUNCTION_200 and assign
     //                 the value (=80) in "react on parameters" (line 512) to new_BRIGHTNESS
 
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</p>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<form action=\"?sCmd\" >");    // ?sCmd forced the '?' at the right spot
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR><p class=\"text-muted\">Brightness&nbsp;");  // perhaps we can show here the current value
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "100");   // this is just a scale depending on the max value; round for better readability
-    counterResponse += sprintf(sResponse + counterResponse, "%s", " %</p>");
-    //counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<input style=\"width:200px; height:50px\" type=\"range\" name=\"=FUNCTION_200\" id=\"cmd\" value=\"");   // '=' in front of FUNCTION_200 forced the = at the right spot
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "100");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "\" min=10 max=250 step=10 onchange=\"showValue(points)\" />");
-    //counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "<button type=\"submit\" class=\"btn btn-primary\">Select</button>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
-    //counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>");
-    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p class=\"text-muted\">Command: ttt</p><BR>");
-
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</div>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</div>");
-    counterResponse += sprintf(sResponse + counterResponse, "%s", "</body></html>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</p>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<form action=\"?sCmd\" >");    // ?sCmd forced the '?' at the right spot
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR><p class=\"text-muted\">Brightness&nbsp");  // perhaps we can show here the current value
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "100");   // this is just a scale depending on the max value; round for better readability
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", " %</p>");
+    // //counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<input style=\"width:200px; height:50px\" type=\"range\" name=\"=FUNCTION_200\" id=\"cmd\" value=\"");   // '=' in front of FUNCTION_200 forced the = at the right spot
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "100");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "\" min=10 max=250 step=10 onchange=\"showValue(points)\" />");
+    // //counterResponse += sprintf(sResponse + counterResponse, "%s", "<BR>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<button type=\"submit\" class=\"btn btn-primary\">Select</button>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
+    // //counterResponse += sprintf(sResponse + counterResponse, "%s", "<p>");
+    // // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p class=\"text-muted\">Command: ttt</p><BR>");
+    //
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</div>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</div>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "</body></html>");
 
     // counterHeader += sprintf(sHeader + counterHeader, "%s", "HTTP/1.1 200 OK\r\n");
     // counterHeader += sprintf(sHeader + counterHeader, "%s", "Content-Length: ");
@@ -336,7 +381,7 @@ static esp_err_t home_handler(httpd_req_t *req)
     // printf(sendString);
     // httpd_resp_send(req, sendString, strlen(sendString));
 
-    printf(sResponse);
+    // printf(sResponse);
     httpd_resp_send(req, sResponse, strlen(sResponse));
 
     return ESP_OK;

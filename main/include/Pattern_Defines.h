@@ -7,11 +7,15 @@ extern "C" {
 
 #include "LED.h"
 
-extern LED_Pattern *Pattern_Rainbow;
-extern LED_Pattern *Pattern_Red_Green_Blue;
-extern LED_Pattern *Pattern_Aqua_Wave;
-extern LED_Pattern *Pattern_Black;
-extern LED_Pattern *Pattern_White;
+#define NUMBER_OF_PRESETS                       4
+#define PRESET0_NAME                            "Rainbow"
+#define PRESET1_NAME                            "Red-Green-Blue"
+#define PRESET2_NAME                            "Aqua Wave"
+#define PRESET3_NAME                            "Off"
+
+extern char* Pattern_Pattern_Names[];
+extern LED_Pattern* Pattern_Presets[];
+extern LED_Pattern* Pattern_Off;
 
 void Pattern_Initialise(void);
 
