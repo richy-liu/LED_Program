@@ -71,6 +71,4 @@ void Pattern_Initialise(void)
     White.cycles = 1;
 
     Pattern_Off = &Black;
-
-    // extern char* Pattern_Pattern_Names[];
 }

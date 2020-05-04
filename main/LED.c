@@ -27,7 +27,7 @@ LED_Colour* currentColours[MAXIMUM_COLOURS];
 
 LED_Colour* customColours[MAXIMUM_COLOURS];
 
-static uint8_t brightness = 20;
+static uint8_t brightness = 40;
 static int16_t currentOffset = 0;
 
 QueueHandle_t LEDConfig_Queue = NULL;
@@ -127,7 +127,7 @@ void LED_Init(void)
 
     currentPattern = malloc(sizeof(LED_Pattern));
 
-    LEDConfig_Queue = xQueueCreate(5, sizeof(LED_Pattern));
+    LEDConfig_Queue = xQueueCreate(1, sizeof(LED_Pattern));
     LEDPeriod_Queue = xQueueCreate(5, sizeof(uint16_t));
     LEDBrightness_Queue = xQueueCreate(5, sizeof(uint8_t));
 
@@ -155,6 +155,7 @@ void LED_Create_Pattern(void)
             break;
         default: break;
     }
+    LED_Comms_Refresh_Data();
 }
 
 void LED_Turn_Off(void)
@@ -195,6 +196,9 @@ void LED_Shift_Forward(void)
     {
         currentOffset = 0;
     }
+
+    // Could change this to a memmove later in LED_Comms
+    LED_Comms_Refresh_Data();
 }
 
 void LED_Shift_Backward(void)
@@ -225,6 +229,9 @@ void LED_Shift_Backward(void)
     {
         currentOffset = LAST_LED_INDEX;
     }
+
+    // Could change this to a memmove later in LED_Comms
+    LED_Comms_Refresh_Data();
 }
 
 void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours)

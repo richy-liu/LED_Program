@@ -27,6 +27,18 @@ static const char *TAG = "Server";
 
 static httpd_handle_t serverHTTPHandle = NULL;
 
+static LED_Colour staticColour;
+static LED_Colour* staticColourPointer = &staticColour;
+static LED_Pattern staticPattern = {
+    .patternType = Pattern_Type_Repeating,
+    .period = 100,
+    .colours = &staticColourPointer,
+    .numberOfColours = 1,
+    .direction = 1,
+    .cycles = 1
+};
+static LED_Pattern* staticPatternPointer = &staticPattern;
+
 /* String constants for HTTP and HTML */
 // const static char httpHeader[] =
 //     "HTTP/1.1 200 OK\r\nContent-type: text/html\r\n\r\n";
@@ -110,9 +122,7 @@ static httpd_handle_t serverHTTPHandle = NULL;
 static esp_err_t home_handler(httpd_req_t *req);
 static esp_err_t null_handler(httpd_req_t *req);
 static esp_err_t hello_get_handler(httpd_req_t *req);
-static esp_err_t ctrl_put_handler(httpd_req_t *req);
-/* An HTTP POST handler */
-static esp_err_t echo_post_handler(httpd_req_t *req);
+static esp_err_t setHSV_get_handler(httpd_req_t *req);
 
 static const httpd_uri_t favicon = {
     .uri       = "/favicon.ico",
@@ -130,17 +140,10 @@ static httpd_uri_t home = {
     // .user_ctx  = homeContext
 };
 
-static const httpd_uri_t echo = {
-    .uri       = "/echo",
-    .method    = HTTP_POST,
-    .handler   = echo_post_handler,
-    .user_ctx  = NULL
-};
-
-static const httpd_uri_t ctrl = {
-    .uri       = "/ctrl",
-    .method    = HTTP_PUT,
-    .handler   = ctrl_put_handler,
+static const httpd_uri_t setHSV = {
+    .uri       = "/hsv",
+    .method    = HTTP_GET,
+    .handler   = setHSV_get_handler,
     .user_ctx  = NULL
 };
 
@@ -190,31 +193,11 @@ static esp_err_t home_handler(httpd_req_t *req)
             uint8_t index = strtol(req->uri + strlen(PRESET_STR), &c, 10);
             if (index < NUMBER_OF_PRESETS)
             {
-                // xQueueSendToBackFromISR(LEDConfig_Queue, Pattern_Presets + index, NULL);
                 xQueueSendToBackFromISR(LEDConfig_Queue, &(Pattern_Presets[index]), NULL);
             }
-
-            // char* c;
-            // switch(strtol(req->uri + strlen(PRESET_STR), &c, 10))
-            // {
-            //     case 0:
-            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Red_Green_Blue, NULL);
-            //         break;
-            //     case 1:
-            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Rainbow, NULL);
-            //         break;
-            //     case 2:
-            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Aqua_Wave, NULL);
-            //         break;
-            //     case 3:
-            //         xQueueSendToBackFromISR(LEDConfig_Queue, &Pattern_Black, NULL);
-            //         break;
-            //     default: break;
-            // }
         }
     }
 
-    // httpd_resp_send(req, resp_str, strlen(resp_str));
     int counterHeader = 0, counterResponse = 0;
     char sHeader[500], sResponse[5000];
     char sendString[5500];
@@ -298,11 +281,51 @@ static esp_err_t home_handler(httpd_req_t *req)
 
 // /*  this creates a list with ON / OFF buttons
 //     // &nbsp is a non-breaking space; moves next character over
+
     for (int i = 0; i < NUMBER_OF_PRESETS; i++)
     {
-        counterResponse += sprintf(sResponse + counterResponse, "<p><a href=\"?preset=PRESET%d\"><button style=\"width: 150px;\">%s</button></a><br></p>", i, Pattern_Pattern_Names[i]);
-
+        counterResponse += sprintf(sResponse + counterResponse, "<p><a href=\"/?preset=PRESET%d\"><button style=\"width: 150px;\">%s</button></a><br></p>", i, Pattern_Pattern_Names[i]);
     }
+
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<!DOCTYPE html><html>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js\"></script>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css\">");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<script>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "window.value=\"\";");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "var intervalID = window.setInterval(myCallback, 100);");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "function myCallback() {");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "if (window.value){");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "window.value = \"\";");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "var xhttp = new XMLHttpRequest();");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "xhttp.open(\"GET\", \"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"&v=\" + Math.round(v), true);");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "xhttp.send();");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "}}");
+
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "$(document).ready(function(){");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "$(\"#thisone\").spectrum({");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "move: function() {");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "o = $(\"#thisone\").spectrum(\"get\");");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "h = parseFloat(o._originalInput.h)*256/100;");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "if (h > 255) {h=0}");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "s = parseFloat(o._originalInput.s)*255/100;");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "v = parseFloat(o._originalInput.v)*255/100;");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "window.value = \"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"?v=\" + Math.round(v);");
+
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "},");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "showInput: true");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "});");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "});");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "</script>");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "<input type='text' id='thisone' />");
+    counterResponse += sprintf(sResponse + counterResponse, "%s", "</html>");
+
+
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<input class=\"jscolor {onFineChange:'update(this)'}\" id=\"rgb\"></div>");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "<script>function update(picker) {document.getElementById('rgb').innerHTML = Math.round(picker.rgb[0]) + ', ' +  Math.round(picker.rgb[1]) + ', ' + Math.round(picker.rgb[2]);");
+    // counterResponse += sprintf(sResponse + counterResponse, "%s", "document.getElementById(\"change_color\").href=\"?r\" + Math.round(picker.rgb[0]) + \"g\" +  Math.round(picker.rgb[1]) + \"b\" + Math.round(picker.rgb[2]) + \"&\";}</script></body></html>");
+
+
     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET0\"><button style=\"width: 150px;\">Rainbow</button></a><br></p>");
     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET1\"><button style=\"width: 150px;\">Red-Green-Blue</button></a><br></p>");
     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<p><a href=\"?preset=PRESET2\"><button style=\"width: 150px;\">Aqua Wave</button></a><br></p>");
@@ -462,71 +485,46 @@ static esp_err_t hello_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
-/* An HTTP PUT handler. This demonstrates realtime
- * registration and deregistration of URI handlers
- */
-static esp_err_t ctrl_put_handler(httpd_req_t *req)
-{
-    // char buf;
-    // int ret;
-    //
-    // if ((ret = httpd_req_recv(req, &buf, 1)) <= 0) {
-    //     if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-    //         httpd_resp_send_408(req);
-    //     }
-    //     return ESP_FAIL;
-    // }
-    //
-    // if (buf == '0') {
-    //     /* URI handlers can be unregistered using the uri string */
-    //     ESP_LOGI(TAG, "Unregistering /hello and /echo URIs");
-    //     httpd_unregister_uri(req->handle, "/hello");
-    //     httpd_unregister_uri(req->handle, "/echo");
-    //     /* Register the custom error handler */
-    //     httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, http_404_error_handler);
-    // }
-    // else {
-    //     ESP_LOGI(TAG, "Registering /hello and /echo URIs");
-    //     httpd_register_uri_handler(req->handle, &hello);
-    //     httpd_register_uri_handler(req->handle, &echo);
-    //     /* Unregister custom error handler */
-    //     httpd_register_err_handler(req->handle, HTTPD_404_NOT_FOUND, NULL);
-    // }
-    //
-    // /* Respond with empty body */
-    // httpd_resp_send(req, NULL, 0);
-    return ESP_OK;
-}
-
 /* An HTTP POST handler */
-static esp_err_t echo_post_handler(httpd_req_t *req)
+static esp_err_t setHSV_get_handler(httpd_req_t *req)
 {
-    // char buf[100];
-    // int ret, remaining = req->content_len;
-    //
-    // while (remaining > 0) {
-    //     /* Read the data for the request */
-    //     if ((ret = httpd_req_recv(req, buf,
-    //                     MIN(remaining, sizeof(buf)))) <= 0) {
-    //         if (ret == HTTPD_SOCK_ERR_TIMEOUT) {
-    //             /* Retry receiving if timeout occurred */
-    //             continue;
-    //         }
-    //         return ESP_FAIL;
+    char*  buf;
+    size_t buf_len;
+
+    /* Get header value string length and allocate memory for length + 1,
+     * extra byte for null termination */
+    buf_len = httpd_req_get_hdr_value_len(req, "hsv") + 1;
+    // if (buf_len > 1) {
+    //     buf = malloc(buf_len);
+    //     /* Copy null terminated value string into buffer */
+    //     if (httpd_req_get_hdr_value_str(req, "hsv", buf, buf_len) == ESP_OK) {
+    //         ESP_LOGI(TAG, "Found header => hsv: %s", buf);
     //     }
-    //
-    //     /* Send back the same data */
-    //     httpd_resp_send_chunk(req, buf, ret);
-    //     remaining -= ret;
-    //
-    //     /* Log data received */
-    //     ESP_LOGI(TAG, "=========== RECEIVED DATA ==========");
-    //     ESP_LOGI(TAG, "%.*s", ret, buf);
-    //     ESP_LOGI(TAG, "====================================");
+    //     free(buf);
     // }
-    //
-    // // End response
-    // httpd_resp_send_chunk(req, NULL, 0);
+
+    buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+        buf = malloc(buf_len);
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            char param[4];
+            char* c;
+            /* Get value of expected key from query string */
+            if (httpd_query_key_value(buf, "h", param, sizeof(param)) == ESP_OK) {
+                staticColour.hue = strtol(param, &c, 10);
+            }
+            if (httpd_query_key_value(buf, "s", param, sizeof(param)) == ESP_OK) {
+                staticColour.saturation = strtol(param, &c, 10);
+            }
+            if (httpd_query_key_value(buf, "v", param, sizeof(param)) == ESP_OK) {
+                staticColour.value = strtol(param, &c, 10);
+            }
+            xQueueOverwriteFromISR(LEDConfig_Queue, &staticPatternPointer, NULL);
+            // xQueueSendToBackFromISR(LEDConfig_Queue, &staticPatternPointer, NULL);
+            httpd_resp_send(req, "", 0);
+        }
+        free(buf);
+    }
     return ESP_OK;
 }
 
@@ -577,16 +575,17 @@ static httpd_handle_t start_webserver(void)
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 20480;
     config.task_priority = 2;
+    config.server_port = 55000;
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
         // Set URI handlers
         ESP_LOGI(TAG, "Registering URI handlers");
         httpd_register_uri_handler(server, &favicon);
-        httpd_register_uri_handler(server, &home);
         httpd_register_uri_handler(server, &hello);
-        httpd_register_uri_handler(server, &echo);
-        httpd_register_uri_handler(server, &ctrl);
+        httpd_register_uri_handler(server, &setHSV);
+        httpd_register_uri_handler(server, &home);
+
         return server;
     }
 

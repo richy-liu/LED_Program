@@ -27,19 +27,19 @@ static uint32_t t1h_ticks = 0;
 static uint32_t t0l_ticks = 0;
 static uint32_t t1l_ticks = 0;
 
+// The extra
 static uint8_t txBuffer[NUMBER_OF_LEDS * 3] = {};
+static rmt_item32_t rmtArray[NUMBER_OF_LEDS * 8 * 3 + 1] = {};
 
-static void IRAM_ATTR LED_Comms_rmt_adapter(const void *src, rmt_item32_t *dest,
-        size_t src_size, size_t wanted_num, size_t *translated_size,
-        size_t *item_num)
+// static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 16, 1, 32, 0 }}};
+// static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 34, 1, 18, 0 }}};
+// decrease the required time to send them all
+static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 11, 1, 27, 0 }}};
+static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 29, 1, 13, 0 }}};
+static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 2000, 0 }}};
+
+void LED_Comms_Refresh_Data(void)
 {
-    // if (src == NULL || dest == NULL) {
-    if (!(src && dest)) {
-        *translated_size = 0;
-        *item_num = 0;
-        return;
-    }
-
     // typedef struct {
     //     union {
     //         struct {
@@ -55,35 +55,22 @@ static void IRAM_ATTR LED_Comms_rmt_adapter(const void *src, rmt_item32_t *dest,
     // Note that txx_ticks must be < 32768
     // const rmt_item32_t bitVal0 = {{{ t0h_ticks, 1, t0l_ticks, 0 }}};
     // const rmt_item32_t bitVal1 = {{{ t1h_ticks, 1, t1l_ticks, 0 }}};
-    static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 16, 1, 32, 0 }}};
-    static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 34, 1, 18, 0 }}};
+    rmt_item32_t *destPointer = rmtArray;
 
-    static size_t size, num;
-    static uint8_t *psrc;
-    static rmt_item32_t *destPointer;
-
-    size = 0;
-    num = 0;
-    psrc = (uint8_t *)src;
-    destPointer = dest;
-
-    while (size < src_size && num < wanted_num) {
-        destPointer->val = ((*psrc) & 0b10000000) ? bitVal1.val : bitVal0.val;
-        (destPointer + 1)->val = ((*psrc) & 0b01000000) ? bitVal1.val : bitVal0.val;
-        (destPointer + 2)->val = ((*psrc) & 0b00100000) ? bitVal1.val : bitVal0.val;
-        (destPointer + 3)->val = ((*psrc) & 0b00010000) ? bitVal1.val : bitVal0.val;
-        (destPointer + 4)->val = ((*psrc) & 0000001000) ? bitVal1.val : bitVal0.val;
-        (destPointer + 5)->val = ((*psrc) & 0b00000100) ? bitVal1.val : bitVal0.val;
-        (destPointer + 6)->val = ((*psrc) & 0b00000010) ? bitVal1.val : bitVal0.val;
-        (destPointer + 7)->val = ((*psrc) & 0b00000001) ? bitVal1.val : bitVal0.val;
-
-        destPointer += 8;
-        num += 8;
-        size++;
-        psrc++;
+    for (int i = 0; i < NUMBER_OF_LEDS * 3; i++, destPointer += 8)
+    {
+        destPointer->val = (txBuffer[i] & 0b10000000) ? bitVal1.val : bitVal0.val;
+        (destPointer + 1)->val = (txBuffer[i] & 0b01000000) ? bitVal1.val : bitVal0.val;
+        (destPointer + 2)->val = (txBuffer[i] & 0b00100000) ? bitVal1.val : bitVal0.val;
+        (destPointer + 3)->val = (txBuffer[i] & 0b00010000) ? bitVal1.val : bitVal0.val;
+        (destPointer + 4)->val = (txBuffer[i] & 0000001000) ? bitVal1.val : bitVal0.val;
+        (destPointer + 5)->val = (txBuffer[i] & 0b00000100) ? bitVal1.val : bitVal0.val;
+        (destPointer + 6)->val = (txBuffer[i] & 0b00000010) ? bitVal1.val : bitVal0.val;
+        (destPointer + 7)->val = (txBuffer[i] & 0b00000001) ? bitVal1.val : bitVal0.val;
     }
-    *translated_size = size;
-    *item_num = num;
+
+    // Last bit sent, make sure it's low for more than 500us while
+    (destPointer)->val = bitLow.val;
 }
 
 void LED_Comms_Init(void)
@@ -107,7 +94,7 @@ void LED_Comms_Init(void)
 
     // printf("ticks: %u, %u, %u, %u, %uMHz\n", t0h_ticks, t0l_ticks, t1h_ticks, t1l_ticks, counterClockMHz);
 
-    rmt_translator_init(LED_COMMS_CHANNEL, (sample_to_rmt_t) LED_Comms_rmt_adapter);
+    // rmt_translator_init(LED_COMMS_CHANNEL, (sample_to_rmt_t) LED_Comms_rmt_adapter);
 }
 
 uint8_t* LED_Comms_Get_Tx_Buffer(void)
@@ -118,7 +105,8 @@ uint8_t* LED_Comms_Get_Tx_Buffer(void)
 void LED_Comms_Send(void)
 {
     // vTaskSuspendAll();
-    rmt_write_sample(LED_COMMS_CHANNEL, txBuffer, (NUMBER_OF_LEDS * 3), true);
+    // rmt_write_sample(LED_COMMS_CHANNEL, txBuffer, (NUMBER_OF_LEDS * 3), true);
+    rmt_write_items(LED_COMMS_CHANNEL, rmtArray, (NUMBER_OF_LEDS * 8 * 3 + 1), true);
     // xTaskResumeAll();
     rmt_wait_tx_done(LED_COMMS_CHANNEL, pdMS_TO_TICKS(1000));
 }

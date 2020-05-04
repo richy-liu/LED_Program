@@ -12,6 +12,7 @@ extern "C" {
 
 void LED_Comms_Init(void);
 uint8_t* LED_Comms_Get_Tx_Buffer(void);
+void LED_Comms_Refresh_Data(void);
 void LED_Comms_Send(void);
 
 #ifdef __cplusplus

@@ -97,7 +97,7 @@ void app_main(void)
 
     xTaskCreate(WiFi_Task, "WiFi_Task", 4096, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
     xTaskCreate(Server_Task, "Server_Task", 8192, NULL, 1, &ServerTaskHandle);
-    xTaskCreate(LED_Task, "LED_Task", 4096, NULL, 3, &LEDTaskHandle);
+    xTaskCreate(LED_Task, "LED_Task", 8192, NULL, 3, &LEDTaskHandle);
     xTaskCreate(WaterMark_Task, "WaterMark_Task", 4096, NULL, tskIDLE_PRIORITY, &WaterMarkTaskHandle);
 
     while (1)
