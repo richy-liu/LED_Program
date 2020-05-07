@@ -20,6 +20,7 @@
 #include "Colour_Defines.h"
 #include "Pattern_Defines.h"
 #include "Server.h"
+#include "Speed_Period_Converter.h"
 #include "WiFi.h"
 
 TaskHandle_t LEDTaskHandle = NULL;
@@ -32,11 +33,6 @@ void WaterMark_Task(void *pvParameters)
     UBaseType_t highWaterMark;
 
     while(1) {
-        if (LEDTaskHandle)
-        {
-            highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
-            printf("LED High Water Mark: %d\n", highWaterMark);
-        }
         if (WiFiTaskHandle)
         {
             highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
@@ -51,6 +47,11 @@ void WaterMark_Task(void *pvParameters)
         {
             highWaterMark = uxTaskGetStackHighWaterMark(Server_Get_HTTP_Task_Handle());
             printf("HTTP High Water Mark: %d\n", highWaterMark);
+        }
+        if (LEDTaskHandle)
+        {
+            highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
+            printf("LED High Water Mark: %d\n", highWaterMark);
         }
         if (WaterMarkTaskHandle)
         {
@@ -77,6 +78,7 @@ void app_main(void)
     }
 
     Pattern_Initialise();
+    Speed_Period_Converter_Initialise();
 
     // esp_chip_info_t chip_info;
     // esp_chip_info(&chip_info);
@@ -96,7 +98,7 @@ void app_main(void)
     gpio_set_direction(5, GPIO_MODE_OUTPUT);
 
     xTaskCreate(WiFi_Task, "WiFi_Task", 4096, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
-    xTaskCreate(Server_Task, "Server_Task", 8192, NULL, 1, &ServerTaskHandle);
+    xTaskCreate(Server_Task, "Server_Task", 4096, NULL, 2, &ServerTaskHandle);
     xTaskCreate(LED_Task, "LED_Task", 8192, NULL, 3, &LEDTaskHandle);
     xTaskCreate(WaterMark_Task, "WaterMark_Task", 4096, NULL, tskIDLE_PRIORITY, &WaterMarkTaskHandle);
 

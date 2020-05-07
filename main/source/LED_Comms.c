@@ -36,7 +36,8 @@ static rmt_item32_t rmtArray[NUMBER_OF_LEDS * 8 * 3 + 1] = {};
 // decrease the required time to send them all
 static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 11, 1, 27, 0 }}};
 static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 29, 1, 13, 0 }}};
-static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 2000, 0 }}};
+// static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 2000, 0 }}};
+static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 10000, 0 }}};
 
 void LED_Comms_Refresh_Data(void)
 {

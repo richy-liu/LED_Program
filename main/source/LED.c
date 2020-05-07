@@ -69,7 +69,7 @@ QueueHandle_t LEDBrightness_Queue = NULL;
 //     58564, 59049, 59536, 60025, 60516, 61009, 61504, 62001, 62500, 63001, 63504,
 //     64009, 64516, 65025};
 
-void HSVtoRGB(LED_Data* LEDDataLocal, LED_Colour LEDColour)
+static void HSVtoRGB(LED_Data* LEDDataLocal, LED_Colour LEDColour)
 {
   if (!LEDColour.saturation)
   {
@@ -121,43 +121,6 @@ void HSVtoRGB(LED_Data* LEDDataLocal, LED_Colour LEDColour)
   }
 }
 
-void LED_Init(void)
-{
-    LED_Comms_Init();
-
-    currentPattern = malloc(sizeof(LED_Pattern));
-
-    LEDConfig_Queue = xQueueCreate(1, sizeof(LED_Pattern));
-    LEDPeriod_Queue = xQueueCreate(5, sizeof(uint16_t));
-    LEDBrightness_Queue = xQueueCreate(5, sizeof(uint8_t));
-
-    uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
-    int offset;
-    for (int i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        LEDData[i] = malloc(sizeof(LED_Data));
-        offset = (i * 3);
-        LEDData[i]->red = (txBuffer + offset + 1);
-        LEDData[i]->green = (txBuffer + offset);
-        LEDData[i]->blue = (txBuffer + offset + 2);
-    }
-}
-
-void LED_Create_Pattern(void)
-{
-    switch (currentPattern->patternType)
-    {
-        case Pattern_Type_Repeating:
-            LED_Create_Repeating(currentPattern->colours, currentPattern->numberOfColours);
-            break;
-        case Pattern_Type_Wave:
-            LED_Create_Wave(currentPattern->colours, currentPattern->numberOfColours);
-            break;
-        default: break;
-    }
-    LED_Comms_Refresh_Data();
-}
-
 void LED_Turn_Off(void)
 {
     // uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
@@ -168,7 +131,7 @@ void LED_Turn_Off(void)
     memcpy(currentPattern, Pattern_Off, sizeof(LED_Pattern));
 }
 
-void LED_Shift_Forward(void)
+static void LED_Shift_Forward(void)
 {
     LED_Colour_RGB colourTemp;
     uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
@@ -201,7 +164,7 @@ void LED_Shift_Forward(void)
     LED_Comms_Refresh_Data();
 }
 
-void LED_Shift_Backward(void)
+static void LED_Shift_Backward(void)
 {
     LED_Colour_RGB colourTemp;
     uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
@@ -234,7 +197,7 @@ void LED_Shift_Backward(void)
     LED_Comms_Refresh_Data();
 }
 
-void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours)
+static void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours)
 {
     LED_Colour colour;
 
@@ -255,7 +218,7 @@ void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours)
     }
 }
 
-void LED_Create_Wave(LED_Colour* colours[], int numberOfColours)
+static void LED_Create_Wave(LED_Colour* colours[], int numberOfColours)
 {
     int colourIndex0 = -1, colourIndex1 = 0;
     for (int i = 0, j = 0, start = 0, end = 0; i < NUMBER_OF_LEDS; i++)
@@ -381,9 +344,19 @@ void LED_Create_Wave(LED_Colour* colours[], int numberOfColours)
     }
 }
 
-uint32_t LED_Get_Period(void)
+static void LED_Create_Pattern(void)
 {
-    return currentPattern->period;
+    switch (currentPattern->patternType)
+    {
+        case Pattern_Type_Repeating:
+            LED_Create_Repeating(currentPattern->colours, currentPattern->numberOfColours);
+            break;
+        case Pattern_Type_Wave:
+            LED_Create_Wave(currentPattern->colours, currentPattern->numberOfColours);
+            break;
+        default: break;
+    }
+    LED_Comms_Refresh_Data();
 }
 
 static void print_values(void)
@@ -401,7 +374,39 @@ static void print_values(void)
 
 static int difference(int num1, int num2)
 {
-  return num1 >= num2 ? num1 - num2 : num2 - num1;
+    return num1 >= num2 ? num1 - num2 : num2 - num1;
+}
+
+uint16_t LED_Get_Period(void)
+{
+    return currentPattern->period;
+}
+
+uint8_t LED_Get_Brightness(void)
+{
+    return brightness;
+}
+
+void LED_Init(void)
+{
+    LED_Comms_Init();
+
+    currentPattern = malloc(sizeof(LED_Pattern));
+
+    LEDConfig_Queue = xQueueCreate(1, sizeof(LED_Pattern));
+    LEDPeriod_Queue = xQueueCreate(1, sizeof(uint16_t));
+    LEDBrightness_Queue = xQueueCreate(1, sizeof(uint8_t));
+
+    uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
+    int offset;
+    for (int i = 0; i < NUMBER_OF_LEDS; i++)
+    {
+        LEDData[i] = malloc(sizeof(LED_Data));
+        offset = (i * 3);
+        LEDData[i]->red = (txBuffer + offset + 1);
+        LEDData[i]->green = (txBuffer + offset);
+        LEDData[i]->blue = (txBuffer + offset + 2);
+    }
 }
 
 void LED_Task(void *pvParameters)
@@ -416,20 +421,6 @@ void LED_Task(void *pvParameters)
     {
         while (1) vTaskDelay(portMAX_DELAY);
     }
-    // memcpy(colours[0], Colour_Red, sizeof(LED_Colour));
-    // memcpy(colours[1], Colour_Green, sizeof(LED_Colour));
-    // memcpy(colours[2], Colour_Blue, sizeof(LED_Colour));
-    // memcpy(colours[1], Colour_Yellow, sizeof(LED_Colour));
-    // memcpy(colours[2], Colour_Green, sizeof(LED_Colour));
-    // memcpy(colours[3], Colour_Cyan, sizeof(LED_Colour));
-    // memcpy(colours[4], Colour_Blue, sizeof(LED_Colour));
-    // memcpy(colours[5], Colour_Magenta, sizeof(LED_Colour));
-    // colours[1]->saturation = 0;
-    // colours[1]->value = 180;
-    // colours[3]->saturation = 0;
-    // colours[3]->value = 180;
-    // colours[1]->hue = 0;
-    // colours[2]->value = 200;
 
     LED_Create_Pattern();
 

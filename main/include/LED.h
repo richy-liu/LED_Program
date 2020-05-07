@@ -10,9 +10,13 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#define NUMBER_OF_LEDS          40
-#define MAXIMUM_COLOURS         10
-#define LAST_LED_INDEX          (NUMBER_OF_LEDS - 1)
+#define NUMBER_OF_LEDS              10
+#define MAXIMUM_COLOURS             10
+#define LAST_LED_INDEX              (NUMBER_OF_LEDS - 1)
+
+#define MAXIMUM_PERIOD              5000 // milliseconds
+#define MINIMUM_PERIOD              2 // milliseconds
+// #define SPEED_DIVISON_INTERVAL      (MAXIMUM_PERIOD / 100)
 
 typedef struct LED_Data
 {
@@ -57,10 +61,8 @@ extern QueueHandle_t LEDConfig_Queue, LEDPeriod_Queue, LEDBrightness_Queue;
 void LED_Init(void);
 void LED_Turn_Off(void);
 void LED_Task(void *pvParameters);
-void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours);
-void LED_Create_Wave(LED_Colour* colours[], int numberOfColours);
-void LED_Shift_Forward(void);
-void LED_Shift_Backward(void);
+uint16_t LED_Get_Period(void);
+uint8_t LED_Get_Brightness(void);
 
 #ifdef __cplusplus
 }

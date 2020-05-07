@@ -1,3 +1,11 @@
-idf_component_register(SRCS "Colour_Defines.c" "LED_Comms.c" "LED.c" "main.c" "Pattern_Defines" "Server.c" "WiFi.c"
-                    INCLUDE_DIRS "include"
-                    )
+idf_component_register(
+    SRCS "main.c"
+        "source/Colour_Defines.c"
+        "source/LED_Comms.c"
+        "source/LED.c"
+        "source/Pattern_Defines"
+        "source/Server.c"
+        "source/Speed_Period_Converter.c"
+        "source/WiFi.c"
+    INCLUDE_DIRS "include"
+)
