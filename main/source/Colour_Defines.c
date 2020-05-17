@@ -22,6 +22,12 @@ static LED_Colour Blue = {
     .value = 255
 };
 
+static LED_Colour Bloe = {
+    .hue = (200 * 255 + 180) / 360,
+    .saturation = 255,
+    .value = 255
+};
+
 static LED_Colour Cyan = {
     .hue = (180 * 255 + 180) / 360,
     .saturation = 255,
@@ -55,6 +61,7 @@ static LED_Colour White = {
 LED_Colour *Colour_Red = &Red;
 LED_Colour *Colour_Green = &Green;
 LED_Colour *Colour_Blue = &Blue;
+LED_Colour *Colour_Bloe = &Bloe;
 LED_Colour *Colour_Cyan = &Cyan;
 LED_Colour *Colour_Magenta = &Magenta;
 LED_Colour *Colour_Yellow = &Yellow;

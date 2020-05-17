@@ -10,6 +10,7 @@ extern "C" {
 extern LED_Colour *Colour_Red;
 extern LED_Colour *Colour_Green;
 extern LED_Colour *Colour_Blue;
+extern LED_Colour *Colour_Bloe;
 extern LED_Colour *Colour_Cyan;
 extern LED_Colour *Colour_Magenta;
 extern LED_Colour *Colour_Yellow;

@@ -23,9 +23,20 @@
 <h1 class="text-muted">LED Strip Controller</h1>
 
 <!-- <button onclick="sendPreset1()" style="width: 150px;">Click me</button><br><br> -->
-<p><a href=\"?preset=preset%d\"><button style=\"width: 150px;\">%s</button></a><br></p>", i, Pattern_Pattern_Names[i]);
+<p><a href=\"?preset=preset%d\"><button style=\"width: 150px;\">Preset 1</button></a><br></p>
 
 <br><br>
+
+<input type="text" id="setColour" />
+
+<br><br><br>
+
+<div class="slidecontainer">
+    <p>Speed: <span id="speedSpan"></span></p>
+    <input type="range" min="0" max="100" value="50" class="slider" id="speedRange">
+    <p>Brightness: <span id="brightnessSpan"></span></p>
+    <input type="range" min="0" max="100" value="50" class="slider" id="brightnessRange">
+</div>
 
 <script>
 	function sendPreset1() {
@@ -50,9 +61,61 @@
 		  showButtons: false
 		});
 	});
+
+	var speedSlider = document.getElementById("speedRange");
+	var speedValue = document.getElementById("speedSpan");
+	speedValue.innerHTML = speedSlider.value;
+
+	speedSlider.oninput = function() {
+		speedValue.innerHTML = this.value;
+		window.speed = "speed?speed=" + parseFloat(this.value);
+		// console.log(window.speed);
+	}
+
+	var brightnessSlider = document.getElementById("brightnessRange");
+	var brightnessValue = document.getElementById("brightnessSpan");
+	brightnessValue.innerHTML = brightnessSlider.value;
+
+	brightnessSlider.oninput = function() {
+		brightnessValue.innerHTML = this.value;
+		window.brightness = "brightness?brightness=" + parseFloat(this.value);
+	}
+
+	window.lastColour = window.colour;
+	window.lastSpeed = window.speed;
+	window.lastBrightness = window.brightness;
+
+	var intervalID = window.setInterval(SendMessage, 100);
+
+	function SendMessage() {
+		// var xhttp = new XMLHttpRequest();
+
+		if (window.lastColour != window.colour) {
+			window.lastColour = window.colour;
+			// var xhttp = new XMLHttpRequest();
+			// xhttp.open("GET", window.lastColour, true);
+			// xhttp.send();
+			console.log(window.lastColour);
+		}
+		if (window.lastSpeed != window.speed) {
+			window.lastSpeed = window.speed;
+			// var xhttp = new XMLHttpRequest();
+			// xhttp.open("GET", window.lastSpeed, true);
+			// xhttp.send();
+			// console.log(window.speed);
+			console.log(window.lastSpeed);
+		}
+		if (window.lastBrightness != window.brightness) {
+			window.lastBrightness = window.brightness;
+			// var xhttp = new XMLHttpRequest();
+			// xhttp.open("GET", window.lastBrightness, true);
+			// xhttp.send();
+			console.log(window.lastBrightness);
+		}
+	}
 </script>
 
-<input type="text" id="setColour" />
+<!-- <input type="text" id="setColour" />
 
 <br><br><br>
 
@@ -61,9 +124,9 @@
     <input type="range" min="0" max="100" value="50" class="slider" id="speedRange">
     <p>Brightness: <span id="brightnessSpan"></span></p>
     <input type="range" min="0" max="100" value="50" class="slider" id="brightnessRange">
-</div>
+</div> -->
 
-<script>
+<!-- <script>
     var speedSlider = document.getElementById("speedRange");
     var speedValue = document.getElementById("speedSpan");
     speedValue.innerHTML = speedSlider.value;
@@ -115,5 +178,5 @@
 			console.log(window.lastBrightness);
 		}
 	}
-</script>
+</script> -->
 </html>

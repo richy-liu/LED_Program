@@ -14,14 +14,17 @@ static LED_Pattern AquaWave;
 static LED_Colour* BlackColours[1];
 static LED_Pattern Black;
 
+static LED_Colour* LuxembourgColours[3];
+static LED_Pattern Luxembourg;
+
 static LED_Colour* WhiteColours[1];
 static LED_Pattern White;
 
 LED_Pattern* Pattern_Off = &Black;
 
-char* Pattern_Pattern_Names[NUMBER_OF_PRESETS] = {PRESET0_NAME, PRESET1_NAME, PRESET2_NAME, PRESET3_NAME};
+char* Pattern_Pattern_Names[NUMBER_OF_PRESETS] = {PRESET0_NAME, PRESET1_NAME, PRESET2_NAME, PRESET3_NAME, PRESET4_NAME};
 LED_Pattern* Pattern_Presets[NUMBER_OF_PRESETS] = {&Rainbow,
-    &RedGreenBlue, &AquaWave, &Black};
+    &RedGreenBlue, &AquaWave, &Black, &Luxembourg};
 
 void Pattern_Initialise(void)
 {
@@ -61,6 +64,16 @@ void Pattern_Initialise(void)
     Black.numberOfColours = 1;
     Black.direction = 1;
     Black.cycles = 1;
+
+    LuxembourgColours[0] = Colour_Red;
+    LuxembourgColours[1] = Colour_White;
+    LuxembourgColours[2] = Colour_Bloe;
+    Luxembourg.patternType = Pattern_Type_Repeating;
+    Luxembourg.period = 1000;
+    Luxembourg.colours = LuxembourgColours;
+    Luxembourg.numberOfColours = 3;
+    Luxembourg.direction = 1;
+    Luxembourg.cycles = 1;
 
     WhiteColours[0] = Colour_White;
     White.patternType = Pattern_Type_Repeating;
