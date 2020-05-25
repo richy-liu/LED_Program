@@ -82,6 +82,4 @@ void Pattern_Initialise(void)
     White.numberOfColours = 1;
     White.direction = 1;
     White.cycles = 1;
-
-    Pattern_Off = &Black;
 }

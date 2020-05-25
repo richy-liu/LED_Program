@@ -18,9 +18,27 @@
 <!-- <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css'> -->
 <!-- <FONT SIZE=-1> -->
 
+<style>
+	.presetButtons {
+       width: 150px;
+       padding: 20px;
+	}
+</style>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <h1 class="text-muted">LED Strip Controller</h1>
+
+<div class="presetButtons">
+  <button onclick="sendPreset(0)">Preset 0</button>
+</div>
+
+<button onclick="sendPreset0()" style="width: 150px;">Rainbow</button><br><br>
+<button onclick="sendPreset1()" style="width: 150px;">Red-Green-Blue</button><br><br>
+<button onclick="sendPreset2()" style="width: 150px;">Aqua Wave</button><br><br>
+<button onclick="sendPreset3()" style="width: 150px;">Off</button><br><br>
+<button onclick="sendPreset4()" style="width: 150px;">Luxembourg :)</button><br><br>
+<br>
 
 <!-- <button onclick="sendPreset1()" style="width: 150px;">Click me</button><br><br> -->
 <p><a href=\"?preset=preset%d\"><button style=\"width: 150px;\">Preset 1</button></a><br></p>
@@ -41,6 +59,15 @@
 <script>
 	function sendPreset1() {
 		// var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function() {
+            if (this.readyState == 4 && this.status == 200) {
+                var result = this.responseText.split("_");
+                document.getElementById("speedSpan").innerHTML = result[0];
+                document.getElementById("speedRange").value = result[0];
+                document.getElementById("brightnessSpan").innerHTML = result[1];
+                document.getElementById("brightnessRange").value = result[1];
+            }
+        }
 		// xhttp.open("GET", "preset?preset=Preset1", true);
 		// xhttp.send();
 		console.log("pressed");
@@ -54,9 +81,10 @@
 	        s = parseFloat(o._originalInput.s)*255/100;
 	        v = parseFloat(o._originalInput.v)*255/100;
 			window.colour = "hsv?h=" + Math.round(h) + "&s=" + Math.round(s) + "&v=" + Math.round(v);
-	        // console.log(window.colour);
+	        console.log(window.colour);
 	      },
 	      color: "#f00",
+          preferredFormat: "name",
 	      showInput: true,
 		  showButtons: false
 		});

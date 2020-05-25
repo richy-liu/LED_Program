@@ -10,7 +10,7 @@ extern "C" {
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
-#define NUMBER_OF_LEDS              20
+#define NUMBER_OF_LEDS              10
 #define MAXIMUM_COLOURS             10
 #define LAST_LED_INDEX              (NUMBER_OF_LEDS - 1)
 
