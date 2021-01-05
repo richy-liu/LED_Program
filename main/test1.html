@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
 <head>
     <title>LED Controller</title>
@@ -26,12 +26,18 @@
     <input type="text" id="setColour" />
     <br><br>
     <div class="slidecontainer">
-        <p>Speed: <span id="speedSpan"></span></p>
-        <input type="range" min="0" max="100" value="0" class="slider" id="speedRange">
-        <p>Brightness: <span id="brightnessSpan"></span></p>
-        <input type="range" min="0" max="100" value="15" class="slider" id="brightnessRange">
+        <p>Speed: <span id="speedValue"></span></p>
+        <input type="range" min="0" max="100" value="68" class="slider" id="speedSlider">
+        <p>Brightness: <span id="brightnessValue"></span></p>
+        <input type="range" min="0" max="100" value="15" class="slider" id="brightnessSlider">
     </div>
+    <br>
+    Forward: <input type="checkbox" id="forwardCheckbox" onclick="sendMessage('reverse')" checked="true">
     <script>
+    function sendPreset(presetNumber) {
+        document.getElementById("forwardCheckbox").checked = true;
+        sendMessage("preset?preset=" + presetNumber);
+    }
     $(document).ready(function() {
         $("#setColour").spectrum( {
             color: "#f00",
@@ -48,33 +54,35 @@
         v = parseFloat(o._originalInput.v);
         sendMessageThrottled("hsv?h=" + Math.round(h) + "&s=" + Math.round(s) + "&v=" + Math.round(v));
     }
-    function sendPreset(presetNumber) {
+    var speedValue = document.getElementById("speedValue");
+    var speedSlider = document.getElementById("speedSlider");
+    var brightnessValue = document.getElementById("brightnessValue");
+    var brightnessSlider = document.getElementById("brightnessSlider");
+    speedValue.innerHTML = speedSlider.value;
+    speedSlider.oninput = function() {
+        speedValue.innerHTML = this.value;
+        sendMessageThrottled("speed?speed=" + parseFloat(this.value));
+    }
+    brightnessValue.innerHTML = brightnessSlider.value;
+    brightnessSlider.oninput = function() {
+        brightnessValue.innerHTML = this.value;
+        sendMessageThrottled("brightness?brightness=" + parseFloat(this.value));
+    }
+    var sendMessageThrottled = _.throttle(sendMessage, 50, { "trailing": true });
+    function sendMessage(message) {
+        console.log(message);
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function() {
             if (this.readyState == 4 && this.status == 200) {
-                var result = this.responseText.split("_");
-                document.getElementById("speedRange").value = result[0];
-                document.getElementById("speedSpan").innerHTML = result[0];
-                document.getElementById("brightnessRange").value = result[1];
-                document.getElementById("brightnessSpan").innerHTML = result[1];
+                if (this.responseText) {
+                    var result = this.responseText.split("_");
+                    speedValue.innerHTML = result[0];
+                    speedSlider.value = result[0];
+                    brightnessValue.innerHTML = result[1];
+                    brightnessSlider.value = result[1];
+                }
             }
         }
-        xhttp.open("GET", "preset?preset=" + presetNumber, true);
-        xhttp.send();
-    }
-    document.getElementById("speedSpan").innerHTML = document.getElementById("speedRange").value;
-    document.getElementById("speedRange").oninput = function() {
-        document.getElementById("speedSpan").innerHTML = this.value;
-        sendMessageThrottled("speed?speed=" + parseFloat(this.value))
-    }
-    document.getElementById("brightnessSpan").innerHTML = document.getElementById("brightnessRange").value;
-    document.getElementById("brightnessRange").oninput = function() {
-        document.getElementById("brightnessSpan").innerHTML = this.value;
-        sendMessageThrottled("brightness?brightness=" + parseFloat(this.value))
-    }
-    var sendMessageThrottled = _.throttle(sendMessage, 10, { "trailing": true });
-    function sendMessage(message) {
-        var xhttp = new XMLHttpRequest();
         xhttp.open("GET", message, true);
         xhttp.send();
     }

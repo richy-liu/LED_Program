@@ -8,9 +8,11 @@ extern "C" {
 #include <stdint.h>
 
 #include "freertos/FreeRTOS.h"
+#include "freertos/semphr.h"
 #include "freertos/queue.h"
 
-#define NUMBER_OF_LEDS              10
+// #define NUMBER_OF_LEDS              30
+#define NUMBER_OF_LEDS              180
 #define MAXIMUM_COLOURS             10
 #define LAST_LED_INDEX              (NUMBER_OF_LEDS - 1)
 
@@ -42,7 +44,7 @@ typedef struct LED_Colour
 enum LED_Pattern_Type
 {
     Pattern_Type_Repeating,
-    Pattern_Type_Wave
+    Pattern_Type_Wave,
 };
 
 typedef struct LED_Pattern
@@ -54,9 +56,11 @@ typedef struct LED_Pattern
 
     uint8_t direction;
     uint8_t cycles;
+    bool syncronised;
 } LED_Pattern;
 
 extern QueueHandle_t LEDConfig_Queue, LEDPeriod_Queue, LEDBrightness_Queue;
+extern SemaphoreHandle_t LEDReverse_Semaphore, LEDSyncronise_Semaphore;
 
 void LED_Init(void);
 void LED_Turn_Off(void);

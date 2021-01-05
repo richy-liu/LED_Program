@@ -14,6 +14,7 @@ extern LED_Colour *Colour_Bloe;
 extern LED_Colour *Colour_Cyan;
 extern LED_Colour *Colour_Magenta;
 extern LED_Colour *Colour_Yellow;
+extern LED_Colour *Colour_Orange;
 extern LED_Colour *Colour_White;
 extern LED_Colour *Colour_Black;
 

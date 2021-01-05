@@ -23,6 +23,8 @@
 #include "Speed_Period_Converter.h"
 #include "WiFi.h"
 
+#include "Accelerometer.h"
+
 TaskHandle_t LEDTaskHandle = NULL;
 TaskHandle_t WiFiTaskHandle = NULL;
 TaskHandle_t ServerTaskHandle = NULL;
@@ -76,6 +78,8 @@ void app_main(void)
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
+
+    // Accelerometer_Initialise();
 
     Pattern_Initialise();
     Speed_Period_Converter_Initialise();

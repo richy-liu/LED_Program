@@ -7,5 +7,6 @@ idf_component_register(
         "source/Server.c"
         "source/Speed_Period_Converter.c"
         "source/WiFi.c"
+        "source/Accelerometer.c"
     INCLUDE_DIRS "include"
 )

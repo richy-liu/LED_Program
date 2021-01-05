@@ -1,210 +1,106 @@
-<!DOCTYPE html><html>
+<!DOCTYPE html>
+<html>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js"></script>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js"></script>
+    <head>
+        <title>LED Controller</title>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css">
-
-<!-- <head> -->
-<title>LED Controller</title>
-
-<!-- <style type=\"text/css\">
-	.form-control {
-	 width:55px;
-	}
-</style> -->
-<!-- </head> -->
-<!-- <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css'> -->
-<!-- <FONT SIZE=-1> -->
-
-<style>
-	.presetButtons {
-       width: 150px;
-       padding: 20px;
-	}
-</style>
-
-<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-
-<h1 class="text-muted">LED Strip Controller</h1>
-
-<div class="presetButtons">
-  <button onclick="sendPreset(0)">Preset 0</button>
-</div>
-
-<button onclick="sendPreset0()" style="width: 150px;">Rainbow</button><br><br>
-<button onclick="sendPreset1()" style="width: 150px;">Red-Green-Blue</button><br><br>
-<button onclick="sendPreset2()" style="width: 150px;">Aqua Wave</button><br><br>
-<button onclick="sendPreset3()" style="width: 150px;">Off</button><br><br>
-<button onclick="sendPreset4()" style="width: 150px;">Luxembourg :)</button><br><br>
-<br>
-
-<!-- <button onclick="sendPreset1()" style="width: 150px;">Click me</button><br><br> -->
-<p><a href=\"?preset=preset%d\"><button style=\"width: 150px;\">Preset 1</button></a><br></p>
-
-<br><br>
-
-<input type="text" id="setColour" />
-
-<br><br><br>
-
-<div class="slidecontainer">
-    <p>Speed: <span id="speedSpan"></span></p>
-    <input type="range" min="0" max="100" value="50" class="slider" id="speedRange">
-    <p>Brightness: <span id="brightnessSpan"></span></p>
-    <input type="range" min="0" max="100" value="50" class="slider" id="brightnessRange">
-</div>
-
-<script>
-	function sendPreset1() {
-		// var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function() {
-            if (this.readyState == 4 && this.status == 200) {
-                var result = this.responseText.split("_");
-                document.getElementById("speedSpan").innerHTML = result[0];
-                document.getElementById("speedRange").value = result[0];
-                document.getElementById("brightnessSpan").innerHTML = result[1];
-                document.getElementById("brightnessRange").value = result[1];
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+        <style>
+            .presetButtons {
+                width: 150px;
             }
-        }
-		// xhttp.open("GET", "preset?preset=Preset1", true);
-		// xhttp.send();
-		console.log("pressed");
-	}
+        </style>
+    </head>
 
-	$(document).ready(function() {
-		$("#setColour").spectrum( {
-	      move: function() {
-	        o = $("#setColour").spectrum("get");
-	        h = parseFloat(o._originalInput.h)*256/100;
-	        s = parseFloat(o._originalInput.s)*255/100;
-	        v = parseFloat(o._originalInput.v)*255/100;
-			window.colour = "hsv?h=" + Math.round(h) + "&s=" + Math.round(s) + "&v=" + Math.round(v);
-	        console.log(window.colour);
-	      },
-	      color: "#f00",
-          preferredFormat: "name",
-	      showInput: true,
-		  showButtons: false
-		});
-	});
+    <body>
+        <h1 class="text-muted">LED Strip Controller</h1>
 
-	var speedSlider = document.getElementById("speedRange");
-	var speedValue = document.getElementById("speedSpan");
-	speedValue.innerHTML = speedSlider.value;
+        <div>
+            <button class="presetButtons" onclick="sendPreset(0)">Rainbow</button><br><br>
+            <button class="presetButtons" onclick="sendPreset(1)">Red-Green-Blue</button><br><br>
+            <button class="presetButtons" onclick="sendPreset(2)">Aqua Wave</button><br><br>
+            <button class="presetButtons" onclick="sendPreset(3)">Inferno Wave</button><br><br>
+            <button class="presetButtons" onclick="sendPreset(4)">Off</button><br><br>
+            <button class="presetButtons" onclick="sendPreset(5)">Luxembourg :)</button><br><br>
+        </div>
 
-	speedSlider.oninput = function() {
-		speedValue.innerHTML = this.value;
-		window.speed = "speed?speed=" + parseFloat(this.value);
-		// console.log(window.speed);
-	}
+        <br>
 
-	var brightnessSlider = document.getElementById("brightnessRange");
-	var brightnessValue = document.getElementById("brightnessSpan");
-	brightnessValue.innerHTML = brightnessSlider.value;
+        <input type="text" id="setColour" />
 
-	brightnessSlider.oninput = function() {
-		brightnessValue.innerHTML = this.value;
-		window.brightness = "brightness?brightness=" + parseFloat(this.value);
-	}
+        <br><br>
 
-	window.lastColour = window.colour;
-	window.lastSpeed = window.speed;
-	window.lastBrightness = window.brightness;
+        <div class="slidecontainer">
+            <p>Speed: <span id="speedValue"></span></p>
+            <input type="range" min="0" max="100" value="23" class="slider" id="speedSlider">
+            <p>Brightness: <span id="brightnessValue"></span></p>
+            <input type="range" min="0" max="100" value="15" class="slider" id="brightnessSlider">
+        </div>
+        <br>
 
-	var intervalID = window.setInterval(SendMessage, 100);
+        Forward: <input type="checkbox" id="forwardCheckbox" onclick="sendMessage('reverse')" checked="true">
 
-	function SendMessage() {
-		// var xhttp = new XMLHttpRequest();
+        <script>
+            function sendPreset(presetNumber) {
+                document.getElementById("forwardCheckbox").checked = true;
+                sendMessage("preset?preset=" + presetNumber);
+            }
+            $(document).ready(function() {
+                $("#setColour").spectrum( {
+                    color: "#f00",
+                    showInput: true,
+                    showButtons: false
+                });
+                $("#setColour").on("move.spectrum", setColourFunction);
+                $("#setColour").on("change.spectrum", setColourFunction);
+            });
+            function setColourFunction() {
+                o = $("#setColour").spectrum("get");
+                h = parseFloat(o._originalInput.h);
+                s = parseFloat(o._originalInput.s);
+                v = parseFloat(o._originalInput.v);
+                sendMessageThrottled("hsv?h=" + Math.round(h) + "&s=" + Math.round(s) + "&v=" + Math.round(v));
+            }
 
-		if (window.lastColour != window.colour) {
-			window.lastColour = window.colour;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastColour, true);
-			// xhttp.send();
-			console.log(window.lastColour);
-		}
-		if (window.lastSpeed != window.speed) {
-			window.lastSpeed = window.speed;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastSpeed, true);
-			// xhttp.send();
-			// console.log(window.speed);
-			console.log(window.lastSpeed);
-		}
-		if (window.lastBrightness != window.brightness) {
-			window.lastBrightness = window.brightness;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastBrightness, true);
-			// xhttp.send();
-			console.log(window.lastBrightness);
-		}
-	}
-</script>
+            var speedValue = document.getElementById("speedValue");
+            var speedSlider = document.getElementById("speedSlider");
+            var brightnessValue = document.getElementById("brightnessValue");
+            var brightnessSlider = document.getElementById("brightnessSlider");
 
-<!-- <input type="text" id="setColour" />
+            speedValue.innerHTML = speedSlider.value;
+            speedSlider.oninput = function() {
+                speedValue.innerHTML = this.value;
+                sendMessageThrottled("speed?speed=" + parseFloat(this.value));
+            }
 
-<br><br><br>
+            brightnessValue.innerHTML = brightnessSlider.value;
+            brightnessSlider.oninput = function() {
+                brightnessValue.innerHTML = this.value;
+                sendMessageThrottled("brightness?brightness=" + parseFloat(this.value));
+            }
 
-<div class="slidecontainer">
-    <p>Speed: <span id="speedSpan"></span></p>
-    <input type="range" min="0" max="100" value="50" class="slider" id="speedRange">
-    <p>Brightness: <span id="brightnessSpan"></span></p>
-    <input type="range" min="0" max="100" value="50" class="slider" id="brightnessRange">
-</div> -->
-
-<!-- <script>
-    var speedSlider = document.getElementById("speedRange");
-    var speedValue = document.getElementById("speedSpan");
-    speedValue.innerHTML = speedSlider.value;
-
-    speedSlider.oninput = function() {
-        speedValue.innerHTML = this.value;
-		window.speed = "speed?speed=" + parseFloat(this.value);
-		// console.log(window.speed);
-    }
-
-    var brightnessSlider = document.getElementById("brightnessRange");
-    var brightnessValue = document.getElementById("brightnessSpan");
-    brightnessValue.innerHTML = brightnessSlider.value;
-
-    brightnessSlider.oninput = function() {
-        brightnessValue.innerHTML = this.value;
-		window.brightness = "brightness?brightness=" + parseFloat(this.value);
-    }
-
-	window.lastColour = window.colour;
-	window.lastSpeed = window.speed;
-	window.lastBrightness = window.brightness;
-
-	var intervalID = window.setInterval(SendMessage, 100);
-
-	function SendMessage() {
-		// var xhttp = new XMLHttpRequest();
-
-		if (window.lastColour != window.colour) {
-			window.lastColour = window.colour;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastColour, true);
-			// xhttp.send();
-			console.log(window.lastColour);
-		}
-		if (window.lastSpeed != window.speed) {
-			window.lastSpeed = window.speed;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastSpeed, true);
-			// xhttp.send();
-			// console.log(window.speed);
-			console.log(window.lastSpeed);
-		}
-		if (window.lastBrightness != window.brightness) {
-			window.lastBrightness = window.brightness;
-			// var xhttp = new XMLHttpRequest();
-			// xhttp.open("GET", window.lastBrightness, true);
-			// xhttp.send();
-			console.log(window.lastBrightness);
-		}
-	}
-</script> -->
+            var sendMessageThrottled = _.throttle(sendMessage, 50, { "trailing": true });
+            function sendMessage(message) {
+                var xhttp = new XMLHttpRequest();
+                xhttp.onreadystatechange = function() {
+                    if (this.readyState == 4 && this.status == 200) {
+                        if (this.responseText) {
+                            var result = this.responseText.split("_");
+                            speedValue.innerHTML = result[0];
+                            speedSlider.value = result[0];
+                            brightnessValue.innerHTML = result[1];
+                            brightnessSlider.value = result[1];
+                        }
+                    }
+                }
+                xhttp.open("GET", message, true);
+                xhttp.send();
+            }
+        </script>
+    </body>
 </html>

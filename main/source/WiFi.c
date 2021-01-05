@@ -22,10 +22,8 @@
 
 #include "WiFi.h"
 
-// #define AP_NAME      "TelstraE4E02D"
-// #define AP_PASSWORD      "qen4bkur47"
-#define AP_NAME      "Telstra0A7E"
-#define AP_PASSWORD      "1557083374"
+#define AP_NAME      "TelstraE4E02D"
+#define AP_PASSWORD      "qen4bkur47"
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;

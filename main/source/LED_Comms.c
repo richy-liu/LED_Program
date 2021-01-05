@@ -10,16 +10,23 @@
 #include "LED_Comms.h"
 #include "LED.h"
 
-// #define T0H_NS (350)
-// #define T0L_NS (1000)
-// #define T1H_NS (1000)
-// #define T1L_NS (350)
-// #define RESET_US (280)
+// #define T0H_NS (250)
+// #define T0L_NS (700)
+// #define T1H_NS (650)
+// #define T1L_NS (300)
+// #define RESET_NS (50000)
 
-#define T0H_NS (400)
-#define T0L_NS (800)
-#define T1H_NS (850)
-#define T1L_NS (450)
+// These are middle values
+// #define T0H_NS (400)
+// #define T0L_NS (800)
+// #define T1H_NS (850)
+// #define T1L_NS (450)
+// #define RESET_NS (50000)
+
+#define T0H_NS (500)
+#define T0L_NS (2000)
+#define T1H_NS (1200)
+#define T1L_NS (1300)
 #define RESET_NS (50000)
 
 static uint32_t t0h_ticks = 0;
@@ -31,13 +38,19 @@ static uint32_t t1l_ticks = 0;
 static uint8_t txBuffer[NUMBER_OF_LEDS * 3] = {};
 static rmt_item32_t rmtArray[NUMBER_OF_LEDS * 8 * 3 + 1] = {};
 
+// For WS
 // static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 16, 1, 32, 0 }}};
 // static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 34, 1, 18, 0 }}};
 // decrease the required time to send them all
 static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 11, 1, 27, 0 }}};
 static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 29, 1, 13, 0 }}};
+
+// For WS2811
+// static const DRAM_ATTR rmt_item32_t bitVal0 = {{{ 20, 1, 80, 0 }}};
+// static const DRAM_ATTR rmt_item32_t bitVal1 = {{{ 48, 1, 52, 0 }}};
+
 // static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 2000, 0 }}};
-static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 10000, 0 }}};
+static const DRAM_ATTR rmt_item32_t bitLow = {{{ 1, 1, 2000, 0 }}};
 
 void LED_Comms_Refresh_Data(void)
 {

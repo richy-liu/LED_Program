@@ -58,6 +58,13 @@ static LED_Colour White = {
     .value = 255
 };
 
+static LED_Colour Orange = {
+    .hue = (15 * 255 + 180) / 360,
+    .saturation = 255,
+    .value = 255
+};
+
+
 LED_Colour *Colour_Red = &Red;
 LED_Colour *Colour_Green = &Green;
 LED_Colour *Colour_Blue = &Blue;
@@ -67,3 +74,4 @@ LED_Colour *Colour_Magenta = &Magenta;
 LED_Colour *Colour_Yellow = &Yellow;
 LED_Colour *Colour_White = &White;
 LED_Colour *Colour_Black = &Black;
+LED_Colour *Colour_Orange = &Orange;

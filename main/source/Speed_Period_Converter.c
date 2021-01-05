@@ -1,7 +1,8 @@
 #include <Math.h>
 #include "LED.h"
 
-// uint16_t periodArray[100] = {};
+// Each LED takes 21.6us if operating at the fastest rate at the limit of the spec
+// 200 LEDs takes over 4ms...
 uint16_t periodArray[100] = {5000, 4700, 4400, 4200, 4000, 3800, 3600, 3400, 3200, 3000,
 2800, 2600, 2400, 2200, 2000, 1800, 1600, 1500, 1400, 1300,
 1200, 1100, 1050, 1020, 990, 960, 930, 900, 875, 850,

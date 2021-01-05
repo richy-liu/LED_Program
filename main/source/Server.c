@@ -38,6 +38,8 @@ static esp_err_t setHSV_get_handler(httpd_req_t *req);
 static esp_err_t setBrightness_get_handler(httpd_req_t *req);
 static esp_err_t setSpeed_get_handler(httpd_req_t *req);
 static esp_err_t setPreset_get_handler(httpd_req_t *req);
+static esp_err_t setReverse_get_handler(httpd_req_t *req);
+static esp_err_t setSyncronise_get_handler(httpd_req_t *req);
 
 static const httpd_uri_t favicon = {
     .uri       = "/favicon.ico",
@@ -83,6 +85,20 @@ static const httpd_uri_t setSpeed = {
     .user_ctx  = NULL
 };
 
+static const httpd_uri_t setReverse = {
+    .uri       = "/reverse",
+    .method    = HTTP_GET,
+    .handler   = setReverse_get_handler,
+    .user_ctx  = NULL
+};
+
+static const httpd_uri_t setSyncronise = {
+    .uri       = "/syncronise",
+    .method    = HTTP_GET,
+    .handler   = setSyncronise_get_handler,
+    .user_ctx  = NULL
+};
+
 esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
     if (strcmp("/hello", req->uri) == 0) {
@@ -106,147 +122,6 @@ static esp_err_t null_handler(httpd_req_t *req)
     printf("null: %s", req->uri);
     return ESP_OK;
 }
-
-// static void Create_Page(char *start, int *length, uint16_t period)
-// {
-//     *length += sprintf(start + *length, "<!DOCTYPE html><html>\n");
-//     *length += sprintf(start + *length, "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>\n");
-//     *length += sprintf(start + *length, "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js\"></script>\n");
-//     *length += sprintf(start + *length, "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css\">\n");
-//
-//     *length += sprintf(start + *length, "<title>LED Controller</title>\n");
-//     *length += sprintf(start + *length, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n");
-//     *length += sprintf(start + *length, "<h1 class=\"text-muted\">LED Strip Controller</h1>\n");
-//
-//     // /*  this creates a list with ON / OFF buttons
-//     //     // &nbsp is a non-breaking space; moves next character over
-//
-//     for (int i = 0; i < NUMBER_OF_PRESETS; i++)
-//     {
-//         // *length += sprintf(start + *length, "<button onclick=\"sendPreset%d()\" style=\"width: 150px;\">%s</button><br><br>\n", i, Pattern_Pattern_Names[i]);
-//         *length += sprintf(start + *length, "<p><a href=\"preset?preset=%d\"><button style=\"width: 150px;\">%s</button></a><br></p>", i, Pattern_Pattern_Names[i]);
-//     }
-//
-//     *length += sprintf(start + *length, "<br>\n");
-//
-//     *length += sprintf(start + *length, "<script>\n");
-//
-//     // for (int i = 0; i < NUMBER_OF_PRESETS; i++)
-//     // {
-//     //     *length += sprintf(start + *length, "function sendPreset%d() {\n", i);
-//     //     *length += sprintf(start + *length, "var xhttp = new XMLHttpRequest();\n");
-//     //     *length += sprintf(start + *length, "xhttp.open(\"GET\", \"preset?preset=%d\", true);\n", i);
-//     //     *length += sprintf(start + *length, "xhttp.send();\n");
-//     //     *length += sprintf(start + *length, "}\n");
-//     // }
-//
-//     *length += sprintf(start + *length, "$(document).ready(function() {\n");
-//     *length += sprintf(start + *length, "$(\"#setColour\").spectrum( {\n");
-//     *length += sprintf(start + *length, "move: function() {\n");
-//     *length += sprintf(start + *length, "o = $(\"#setColour\").spectrum(\"get\");\n");
-//     *length += sprintf(start + *length, "h = parseFloat(o._originalInput.h);\n");
-//     *length += sprintf(start + *length, "s = parseFloat(o._originalInput.s);\n");
-//     *length += sprintf(start + *length, "v = parseFloat(o._originalInput.v);\n");
-//     *length += sprintf(start + *length, "window.colour = \"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"&v=\" + Math.round(v);\n");
-//     *length += sprintf(start + *length, "},\n");
-//     *length += sprintf(start + *length, "color: \"#f00\",\n");
-//     *length += sprintf(start + *length, "showInput: true,\n");
-//     *length += sprintf(start + *length, "showButtons: false\n");
-//     *length += sprintf(start + *length, "});\n");
-//     *length += sprintf(start + *length, "});\n");
-//     *length += sprintf(start + *length, "</script>\n");
-//
-//     *length += sprintf(start + *length, "<input type=\"text\" id=\"setColour\" />\n");
-//
-//     *length += sprintf(start + *length, "<br><br>\n");
-//
-//     *length += sprintf(start + *length, "<div class=\"slidecontainer\">\n");
-//     *length += sprintf(start + *length, "<p>Speed: <span id=\"speedSpan\"></span></p>\n");
-//     *length += sprintf(start + *length, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"speedRange\">\n", Get_Speed_From_Period(period));
-//     *length += sprintf(start + *length, "<p>Brightness: <span id=\"brightnessSpan\"></span></p>\n");
-//     *length += sprintf(start + *length, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"brightnessRange\">\n", LED_Get_Brightness() * 100 / 255);
-//     *length += sprintf(start + *length, "</div>\n");
-//
-//
-//     *length += sprintf(start + *length, "<script>\n");
-//     *length += sprintf(start + *length, "var speedSlider = document.getElementById(\"speedRange\");\n");
-//     *length += sprintf(start + *length, "var speedValue = document.getElementById(\"speedSpan\");\n");
-//     *length += sprintf(start + *length, "speedValue.innerHTML = speedSlider.value;\n");
-//     *length += sprintf(start + *length, "speedSlider.oninput = function() {\n");
-//     *length += sprintf(start + *length, "speedValue.innerHTML = this.value;\n");
-//     *length += sprintf(start + *length, "window.speed = \"speed?speed=\" + parseFloat(this.value);\n");
-//     *length += sprintf(start + *length, "}\n");
-//
-//     *length += sprintf(start + *length, "var brightnessSlider = document.getElementById(\"brightnessRange\");\n");
-//     *length += sprintf(start + *length, "var brightnessValue = document.getElementById(\"brightnessSpan\");\n");
-//     *length += sprintf(start + *length, "brightnessValue.innerHTML = brightnessSlider.value;\n");
-//     *length += sprintf(start + *length, "brightnessSlider.oninput = function() {\n");
-//     *length += sprintf(start + *length, "brightnessValue.innerHTML = this.value;\n");
-//     *length += sprintf(start + *length, "window.brightness = \"brightness?brightness=\" + parseFloat(this.value);\n");
-//     *length += sprintf(start + *length, "}\n");
-//
-//     *length += sprintf(start + *length, "window.lastColour = window.colour;\n");
-//     *length += sprintf(start + *length, "window.lastSpeed = window.speed;\n");
-//     *length += sprintf(start + *length, "window.lastBrightness = window.brightness;\n");
-//
-//     *length += sprintf(start + *length, "var intervalID = window.setInterval(SendMessage, 100);\n");
-//
-//     *length += sprintf(start + *length, "function SendMessage() {\n");
-//     *length += sprintf(start + *length, "if (window.lastColour != window.colour) {\n");
-//     *length += sprintf(start + *length, "window.lastColour = window.colour;\n");
-//     *length += sprintf(start + *length, "var xhttp = new XMLHttpRequest();\n");
-//     *length += sprintf(start + *length, "xhttp.open(\"GET\", window.lastColour, true);\n");
-//     *length += sprintf(start + *length, "xhttp.send();\n");
-//     *length += sprintf(start + *length, "}\n");
-//     *length += sprintf(start + *length, "if (window.lastSpeed != window.speed) {\n");
-//     *length += sprintf(start + *length, "window.lastSpeed = window.speed;\n");
-//     *length += sprintf(start + *length, "var xhttp = new XMLHttpRequest();\n");
-//     *length += sprintf(start + *length, "xhttp.open(\"GET\", window.lastSpeed, true);\n");
-//     *length += sprintf(start + *length, "xhttp.send();\n");
-//     *length += sprintf(start + *length, "}\n");
-//     *length += sprintf(start + *length, "if (window.lastBrightness != window.brightness) {\n");
-//     *length += sprintf(start + *length, "window.lastBrightness = window.brightness;\n");
-//     *length += sprintf(start + *length, "var xhttp = new XMLHttpRequest();\n");
-//     *length += sprintf(start + *length, "xhttp.open(\"GET\", window.lastBrightness, true);\n");
-//     *length += sprintf(start + *length, "xhttp.send();\n");
-//     *length += sprintf(start + *length, "}\n");
-//     *length += sprintf(start + *length, "}\n");
-//
-//     *length += sprintf(start + *length, "</script>\n");
-//
-//     *length += sprintf(start + *length, "</html>\n");
-//
-// // */
-// //  This is a nice drop down menu
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=+1>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<form class=\"form-inline\">");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<div class=\"form-group col-md-3\">");
-//     // //counterResponse += sprintf(sResponse + counterResponse, "%s", "<label for=\"styles\">Select Animation:</label>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<select class=\"form-control form-control-sm\" name=\"sCmd\" size=\"5\">");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1OFF\"selected>All Off</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION1ON\">Rainbow</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION2ON\">Rainbow Glitter</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION3ON\">Confetti</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION4ON\">Fire2012</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION5ON\">Juggle</option>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION6ON\">BPM</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION7ON\">JustRed</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION8ON\">JustGreen</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION9ON\">JustBlue</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION10ON\">JustPurple</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION11ON\">JustOrange</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION12ON\">Fillnoise8</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION13ON\">Noise16_1</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION14ON\">Noise16_2</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION15ON\">Noise16_3</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION16ON\">Lightning</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<option value=\"FUNCTION17ON\">Blur</option><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "</select>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<br><br>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<button type=\"submit\" class=\"btn btn-primary\">Select</button>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "</form>");
-//     // counterResponse += sprintf(sResponse + counterResponse, "%s", "<FONT SIZE=-1>");
-// }
 
 static void Create_Page(char *start)
 {
@@ -290,18 +165,30 @@ static void Create_Page(char *start)
     pointer = stpcpy(pointer, "<br><br>\n");
 
     pointer = stpcpy(pointer, "<div class=\"slidecontainer\">\n");
-    pointer = stpcpy(pointer, "<p>Speed: <span id=\"speedSpan\"></span></p>\n");
+    pointer = stpcpy(pointer, "<p>Speed: <span id=\"speedValue\"></span></p>\n");
 
-    sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"speedRange\">\n", Get_Speed_From_Period(LED_Get_Period()));
+    sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"speedSlider\">\n", Get_Speed_From_Period(LED_Get_Period()));
     pointer = stpcpy(pointer, buffer);
-    pointer = stpcpy(pointer, "<p>Brightness: <span id=\"brightnessSpan\"></span></p>\n");
+    pointer = stpcpy(pointer, "<p>Brightness: <span id=\"brightnessValue\"></span></p>\n");
 
-    sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"brightnessRange\">\n", LED_Get_Brightness() * 100 / 255);
+    sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"brightnessSlider\">\n", LED_Get_Brightness() * 100 / 255);
     pointer = stpcpy(pointer, buffer);
     pointer = stpcpy(pointer, "</div>\n");
 
+    pointer = stpcpy(pointer, "<br>\n");
+    pointer = stpcpy(pointer, "Forward: <input type=\"checkbox\" id=\"forwardCheckbox\" onclick=\"sendMessage(\'reverse\')\" checked=\"true\">\n");
+
+    pointer = stpcpy(pointer, "<br><br>\n");
+    pointer = stpcpy(pointer, "Syncronise: <input type=\"checkbox\" id=\"syncroniseCheckbox\" onclick=\"sendMessage(\'syncronise\')\" checked=\"false\">\n");
 
     pointer = stpcpy(pointer, "<script>\n");
+
+    pointer = stpcpy(pointer, "function sendPreset(presetNumber) {\n");
+    pointer = stpcpy(pointer, "document.getElementById(\"forwardCheckbox\").checked = true;\n");
+    pointer = stpcpy(pointer, "document.getElementById(\"syncroniseCheckbox\").checked = false;\n");
+    pointer = stpcpy(pointer, "sendMessage(\"preset?preset=\" + presetNumber);\n");
+    // pointer = stpcpy(pointer, "console.log(\"preset?preset=\" + presetNumber);\n");
+    pointer = stpcpy(pointer, "}\n");
 
     pointer = stpcpy(pointer, "$(document).ready(function() {\n");
     pointer = stpcpy(pointer, "$(\"#setColour\").spectrum( {\n");
@@ -322,48 +209,40 @@ static void Create_Page(char *start)
     // pointer = stpcpy(pointer, "console.log(\"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"&v=\" + Math.round(v));\n");
     pointer = stpcpy(pointer, "}\n");
 
-    pointer = stpcpy(pointer, "function sendPreset(presetNumber) {\n");
-    pointer = stpcpy(pointer, "var xhttp = new XMLHttpRequest();\n");
-    pointer = stpcpy(pointer, "xhttp.onreadystatechange = function() {\n");
-    pointer = stpcpy(pointer, "if (this.readyState == 4 && this.status == 200) {\n");
-    pointer = stpcpy(pointer, "var result = this.responseText.split(\"_\");\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"speedRange\").value = result[0];\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"speedSpan\").innerHTML = result[0];\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"brightnessRange\").value = result[1];\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"brightnessSpan\").innerHTML = result[1];\n");
-    pointer = stpcpy(pointer, "}\n");
-    pointer = stpcpy(pointer, "}\n");
-    pointer = stpcpy(pointer, "xhttp.open(\"GET\", \"preset?preset=\" + presetNumber, true);\n");
-    pointer = stpcpy(pointer, "xhttp.send();\n");
-    // pointer = stpcpy(pointer, "console.log(\"preset?preset=\" + presetNumber);\n");
-    pointer = stpcpy(pointer, "}\n");
+    pointer = stpcpy(pointer, "var speedValue = document.getElementById(\"speedValue\");\n");
+    pointer = stpcpy(pointer, "var speedSlider = document.getElementById(\"speedSlider\");\n");
+    pointer = stpcpy(pointer, "var brightnessValue = document.getElementById(\"brightnessValue\");\n");
+    pointer = stpcpy(pointer, "var brightnessSlider = document.getElementById(\"brightnessSlider\");\n");
 
-    pointer = stpcpy(pointer, "var speedSlider = document.getElementById(\"speedRange\");\n");
-    pointer = stpcpy(pointer, "var speedValue = document.getElementById(\"speedSpan\");\n");
     pointer = stpcpy(pointer, "speedValue.innerHTML = speedSlider.value;\n");
     pointer = stpcpy(pointer, "speedSlider.oninput = function() {\n");
     pointer = stpcpy(pointer, "speedValue.innerHTML = this.value;\n");
-    pointer = stpcpy(pointer, "sendMessageThrottled(\"speed?speed=\" + parseFloat(this.value))\n");
+    pointer = stpcpy(pointer, "sendMessageThrottled(\"speed?speed=\" + parseFloat(this.value));\n");
     // pointer = stpcpy(pointer, "console.log(\"speed?speed=\" + parseFloat(this.value));\n");
     pointer = stpcpy(pointer, "}\n");
 
-    pointer = stpcpy(pointer, "document.getElementById(\"speedSpan\").innerHTML = document.getElementById(\"speedRange\").value;\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"speedRange\").oninput = function() {\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"speedSpan\").innerHTML = this.value;\n");
-    pointer = stpcpy(pointer, "sendMessageThrottled(\"brightness?brightness=\" + parseFloat(this.value))\n");
-    // pointer = stpcpy(pointer, "console.log(\"speed?speed=\" + parseFloat(this.value));\n");
-    pointer = stpcpy(pointer, "}\n");
-
-    pointer = stpcpy(pointer, "document.getElementById(\"brightnessSpan\").innerHTML = document.getElementById(\"brightnessRange\").value;\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"brightnessRange\").oninput = function() {\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"brightnessSpan\").innerHTML = this.value;\n");
-    pointer = stpcpy(pointer, "sendMessageThrottled(\"brightness?brightness=\" + parseFloat(this.value))\n");
+    pointer = stpcpy(pointer, "brightnessValue.innerHTML = brightnessSlider.value;\n");
+    pointer = stpcpy(pointer, "brightnessSlider.oninput = function() {\n");
+    pointer = stpcpy(pointer, "brightnessValue.innerHTML = this.value;\n");
+    pointer = stpcpy(pointer, "sendMessageThrottled(\"brightness?brightness=\" + parseFloat(this.value));\n");
     // pointer = stpcpy(pointer, "console.log(\"brightness?brightness=\" + parseFloat(this.value));\n");
     pointer = stpcpy(pointer, "}\n");
 
     pointer = stpcpy(pointer, "var sendMessageThrottled = _.throttle(sendMessage, 50, { \"trailing\": true });\n");
+
     pointer = stpcpy(pointer, "function sendMessage(message) {\n");
     pointer = stpcpy(pointer, "var xhttp = new XMLHttpRequest();\n");
+    pointer = stpcpy(pointer, "xhttp.onreadystatechange = function() {\n");
+    pointer = stpcpy(pointer, "if (this.readyState == 4 && this.status == 200) {\n");
+    pointer = stpcpy(pointer, "if (this.responseText) {\n");
+    pointer = stpcpy(pointer, "var result = this.responseText.split(\"_\");\n");
+    pointer = stpcpy(pointer, "speedValue.innerHTML = result[0];\n");
+    pointer = stpcpy(pointer, "speedSlider.value = result[0];\n");
+    pointer = stpcpy(pointer, "brightnessValue.innerHTML = result[1];\n");
+    pointer = stpcpy(pointer, "brightnessSlider.value = result[1];\n");
+    pointer = stpcpy(pointer, "}\n");
+    pointer = stpcpy(pointer, "}\n");
+    pointer = stpcpy(pointer, "}\n");
     pointer = stpcpy(pointer, "xhttp.open(\"GET\", message, true);\n");
     pointer = stpcpy(pointer, "xhttp.send();\n");
     // pointer = stpcpy(pointer, "console.log(message);\n");
@@ -488,7 +367,6 @@ static esp_err_t setSpeed_get_handler(httpd_req_t *req)
             if (httpd_query_key_value(buf, "speed", param, sizeof(param)) == ESP_OK) {
                 uint16_t value = Get_Period_From_Speed((uint8_t) strtol(param, &c, 10));
                 // If it returns a 0, then the pattern doesn't move and period should be 0
-                // if (value) value = MAXIMUM_PERIOD - (value - 1) * SPEED_DIVISON_INTERVAL;
                 if (LEDPeriod_Queue) xQueueOverwriteFromISR(LEDPeriod_Queue, &value, NULL);
             }
             httpd_resp_send(req, "", 0);
@@ -498,10 +376,27 @@ static esp_err_t setSpeed_get_handler(httpd_req_t *req)
     return ESP_OK;
 }
 
+/* An HTTP POST handler */
+static esp_err_t setReverse_get_handler(httpd_req_t *req)
+{
+    if (LEDReverse_Semaphore) xSemaphoreGive(LEDReverse_Semaphore);
+    httpd_resp_send(req, "", 0);
+    return ESP_OK;
+}
+
+/* An HTTP POST handler */
+static esp_err_t setSyncronise_get_handler(httpd_req_t *req)
+{
+    if (LEDSyncronise_Semaphore) xSemaphoreGive(LEDSyncronise_Semaphore);
+    httpd_resp_send(req, "", 0);
+    return ESP_OK;
+}
+
 static TaskHandle_t Get_HTTP_TaskHandle(httpd_handle_t httpHandle)
 {
-    // httpd_handle_t is a pointer to httpd_data.
-    //
+    // httpd_handle_t is a pointer to httpd_data but the definition of httpd_data
+    // is hidden. This function manually calculates the pointer location.
+
     // struct httpd_data {
     //     httpd_config_t config;                  /*!< HTTPD server configuration */
     //     int listen_fd;                          /*!< Server listener FD */
@@ -544,8 +439,9 @@ static httpd_handle_t start_webserver(void)
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 20480;
-    config.task_priority = 4;
+    config.task_priority = 5;
     config.server_port = 55000;
+    // config.server_port = 55001;
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
     if (httpd_start(&server, &config) == ESP_OK) {
@@ -556,6 +452,8 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &setHSV);
         httpd_register_uri_handler(server, &setBrightness);
         httpd_register_uri_handler(server, &setSpeed);
+        httpd_register_uri_handler(server, &setReverse);
+        httpd_register_uri_handler(server, &setSyncronise);
         httpd_register_uri_handler(server, &home);
 
         ESP_LOGI(TAG, "Server started!");
