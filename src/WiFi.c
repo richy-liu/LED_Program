@@ -21,9 +21,7 @@
 #include "lwip/sys.h"
 
 #include "WiFi.h"
-
-#define AP_NAME      "TelstraE4E02D"
-#define AP_PASSWORD      "qen4bkur47"
+#include "WiFi_Credentials.h"
 
 /* FreeRTOS event group to signal when we are connected*/
 static EventGroupHandle_t s_wifi_event_group;

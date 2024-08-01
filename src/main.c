@@ -23,8 +23,6 @@
 #include "Speed_Period_Converter.h"
 #include "WiFi.h"
 
-#include "Accelerometer.h"
-
 TaskHandle_t LEDTaskHandle = NULL;
 TaskHandle_t WiFiTaskHandle = NULL;
 TaskHandle_t ServerTaskHandle = NULL;
@@ -79,25 +77,25 @@ void app_main(void)
         ret = nvs_flash_init();
     }
 
-    // Accelerometer_Initialise();
-
     Pattern_Initialise();
     Speed_Period_Converter_Initialise();
 
-    // esp_chip_info_t chip_info;
-    // esp_chip_info(&chip_info);
-    // printf("This is %s chip with %d CPU cores, WiFi%s%s, ",
-    //         CONFIG_IDF_TARGET,
-    //         chip_info.cores,
-    //         (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
-    //         (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
-    //
-    // printf("silicon revision %d, ", chip_info.revision);
-    //
-    // printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
-    //         (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
-    //
-    // fflush(stdout);
+// #include "esp_chip_info.h"
+
+//     esp_chip_info_t chip_info;
+//     esp_chip_info(&chip_info);
+//     printf("This is %s chip with %d CPU cores, WiFi%s%s, ",
+//             CONFIG_IDF_TARGET,
+//             chip_info.cores,
+//             (chip_info.features & CHIP_FEATURE_BT) ? "/BT" : "",
+//             (chip_info.features & CHIP_FEATURE_BLE) ? "/BLE" : "");
+    
+//     printf("silicon revision %d, ", chip_info.revision);
+    
+//     // printf("%dMB %s flash\n", spi_flash_get_chip_size() / (1024 * 1024),
+//     //         (chip_info.features & CHIP_FEATURE_EMB_FLASH) ? "embedded" : "external");
+    
+//     fflush(stdout);
 
     gpio_set_direction(5, GPIO_MODE_OUTPUT);
 
