@@ -5,9 +5,9 @@
 extern "C" {
 #endif
 
-#include "LED.h"
+#include "Colour_Defines.h"
 
-#define NUMBER_OF_PRESETS                       6
+#define NUMBER_OF_PRESETS                       5
 #define PRESET0_NAME                            "Rainbow"
 #define PRESET1_NAME                            "Red-Green-Blue"
 #define PRESET2_NAME                            "Aqua Wave"
@@ -15,11 +15,20 @@ extern "C" {
 #define PRESET4_NAME                            "Off"
 #define PRESET5_NAME                            "Holidays"
 
-extern char* Pattern_Pattern_Names[];
-extern LED_Pattern* Pattern_Presets[];
-extern LED_Pattern* Pattern_Off;
+enum LED_Animation {
+    Animation_Repeating,
+    Animation_Wave
+};
 
-void Pattern_Initialise(void);
+typedef struct LED_Pattern {
+    enum LED_Animation animationType;
+    uint8_t numberOfColours;
+
+	LED_Colour_HSV** colours;
+} LED_Pattern;
+
+extern const char* const Pattern_Names[];
+extern const LED_Pattern* const Pattern_Presets[];
 
 #ifdef __cplusplus
 }

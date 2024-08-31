@@ -13,24 +13,13 @@
 #include "Server.h"
 #include "Speed_Period_Converter.h"
 #include "WiFi.h"
+#include "LED.h"
 
 #define PRESET_STR              ("/?preset=PRESET")
 
 static const char *TAG = "Server";
 
 static httpd_handle_t serverHTTPHandle = NULL;
-
-static LED_Colour staticColour;
-static LED_Colour* staticColourPointer = &staticColour;
-static LED_Pattern staticPattern = {
-    .patternType = Pattern_Type_Repeating,
-    .period = 100,
-    .colours = &staticColourPointer,
-    .numberOfColours = 1,
-    .direction = 1,
-    .cycles = 1
-};
-static LED_Pattern* staticPatternPointer = &staticPattern;
 
 static esp_err_t home_handler(httpd_req_t *req);
 static esp_err_t null_handler(httpd_req_t *req);
@@ -39,7 +28,7 @@ static esp_err_t setBrightness_get_handler(httpd_req_t *req);
 static esp_err_t setSpeed_get_handler(httpd_req_t *req);
 static esp_err_t setPreset_get_handler(httpd_req_t *req);
 static esp_err_t setReverse_get_handler(httpd_req_t *req);
-static esp_err_t setSyncronise_get_handler(httpd_req_t *req);
+static esp_err_t setSynchronise_get_handler(httpd_req_t *req);
 
 static const httpd_uri_t favicon = {
     .uri       = "/favicon.ico",
@@ -86,21 +75,20 @@ static const httpd_uri_t setSpeed = {
 };
 
 static const httpd_uri_t setReverse = {
-    .uri       = "/reverse",
+    .uri       = "/forward",
     .method    = HTTP_GET,
     .handler   = setReverse_get_handler,
     .user_ctx  = NULL
 };
 
-static const httpd_uri_t setSyncronise = {
-    .uri       = "/syncronise",
+static const httpd_uri_t setSynchronise = {
+    .uri       = "/synchronise",
     .method    = HTTP_GET,
-    .handler   = setSyncronise_get_handler,
+    .handler   = setSynchronise_get_handler,
     .user_ctx  = NULL
 };
 
-esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
-{
+esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err) {
     if (strcmp("/hello", req->uri) == 0) {
         httpd_resp_send_err(req, HTTPD_404_NOT_FOUND, "/hello URI is not available");
         /* Return ESP_OK to keep underlying socket open */
@@ -116,78 +104,148 @@ esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
     return ESP_FAIL;
 }
 
-static esp_err_t null_handler(httpd_req_t *req)
-{
+static esp_err_t null_handler(httpd_req_t *req) {
     ESP_LOGI(TAG, "NULL handler");
     printf("null: %s", req->uri);
     return ESP_OK;
 }
 
-static void Create_Page(char *start)
-{
+static void Create_Page(char *start) {
     // Doing it with stpcpy should be faster than with sprintfs...
     char* pointer = start;
-    char buffer[100];
+    char buffer[110];
 
     pointer = stpcpy(pointer, "<!DOCTYPE html>\n");
-    pointer = stpcpy(pointer, "<html>\n");
-    pointer = stpcpy(pointer, "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>\n");
-    pointer = stpcpy(pointer, "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js\"></script>\n");
-    pointer = stpcpy(pointer, "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js\"></script>\n");
-    pointer = stpcpy(pointer, "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css\">\n");
-
+    pointer = stpcpy(pointer, "<html lang=\"en\">\n");
     pointer = stpcpy(pointer, "<head>\n");
-    pointer = stpcpy(pointer, "<title>LED Controller</title>\n");
-    pointer = stpcpy(pointer, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n");
 
+    pointer = stpcpy(pointer, "<meta charset=\"UTF-8\">\n");
+    pointer = stpcpy(pointer, "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\n");
+    pointer = stpcpy(pointer, "<title>LED Controller</title>\n");
+    pointer = stpcpy(pointer, "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css\">\n");
+   
     pointer = stpcpy(pointer, "<style>\n");
-    pointer = stpcpy(pointer, ".presetButtons {\n");
-    pointer = stpcpy(pointer, "width: 150px;\n");
-    // pointer = stpcpy(pointer, "padding: 20px;\n");
+    pointer = stpcpy(pointer, "body {\n");
+    pointer = stpcpy(pointer, "font-family: Arial, sans-serif;\n");
+    pointer = stpcpy(pointer, "background-color: #f0f0f0;\n");
+    pointer = stpcpy(pointer, "margin: 0;\n");
+    pointer = stpcpy(pointer, "padding: 20px;\n");
     pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, "h1 {\n");
+    pointer = stpcpy(pointer, "color: #333;\n");
+    pointer = stpcpy(pointer, "text-align: center;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, ".container {\n");
+    pointer = stpcpy(pointer, "max-width: 600px;\n");
+    pointer = stpcpy(pointer, "margin: 0 auto;\n");
+    pointer = stpcpy(pointer, "background: #fff;\n");
+    pointer = stpcpy(pointer, "padding: 20px;\n");
+    pointer = stpcpy(pointer, "border-radius: 8px;\n");
+    pointer = stpcpy(pointer, "box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, ".presetButtons {\n");
+    pointer = stpcpy(pointer, "width: 100\%;\n");
+    pointer = stpcpy(pointer, "padding: 10px;\n");
+    pointer = stpcpy(pointer, "margin: 5px 0;\n");
+    pointer = stpcpy(pointer, "border: none;\n");
+    pointer = stpcpy(pointer, "border-radius: 5px;\n");
+    pointer = stpcpy(pointer, "background-color: #007BFF;\n");
+    pointer = stpcpy(pointer, "color: white;\n");
+    pointer = stpcpy(pointer, "font-size: 16px;\n");
+    pointer = stpcpy(pointer, "cursor: pointer;\n");
+    pointer = stpcpy(pointer, "}\n");
+    
+    pointer = stpcpy(pointer, ".presetButtons:hover {\n");
+    pointer = stpcpy(pointer, "background-color: #0056b3;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, ".slidecontainer {\n");
+    pointer = stpcpy(pointer, "margin: 20px 0;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, ".slider {\n");
+    pointer = stpcpy(pointer, "width: 100\%;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, "input[type=\"text\"] {\n");
+    pointer = stpcpy(pointer, "width: 100\%;\n");
+    pointer = stpcpy(pointer, "padding: 10px;\n");
+    pointer = stpcpy(pointer, "margin: 10px 0;\n");
+    pointer = stpcpy(pointer, "border-radius: 5px;\n");
+    pointer = stpcpy(pointer, "border: 1px solid #ccc;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, "label {\n");
+    pointer = stpcpy(pointer, "display: block;\n");
+    pointer = stpcpy(pointer, "margin: 10px 0 5px;\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, ".center {\n");
+    pointer = stpcpy(pointer, "text-align: center;\n");
+    pointer = stpcpy(pointer, "}\n");
+
     pointer = stpcpy(pointer, "</style>\n");
     pointer = stpcpy(pointer, "</head>\n");
 
     pointer = stpcpy(pointer, "<body>\n");
+    pointer = stpcpy(pointer, "<div class=\"container\">\n");
     pointer = stpcpy(pointer, "<h1 class=\"text-muted\">LED Strip Controller</h1>\n");
 
-    pointer = stpcpy(pointer, "<div>\n");
-    for (int i = 0; i < NUMBER_OF_PRESETS; i++)
-    {
-        sprintf(buffer, "<button class=\"presetButtons\" onclick=\"sendPreset(%d)\">%s</button><br><br>\n", i, Pattern_Pattern_Names[i]);
+    pointer = stpcpy(pointer, "<div class=\"preset-container\">\n");
+    for (uint32_t i = 0; i < NUMBER_OF_PRESETS; i++) {
+        sprintf(buffer, "<button class=\"presetButtons\" onclick=\"sendPreset(%ld)\">%s</button>\n", i, Pattern_Names[i]);
         pointer = stpcpy(pointer, buffer);
     }
     pointer = stpcpy(pointer, "</div>\n");
-    pointer = stpcpy(pointer, "<br>\n");
 
+    pointer = stpcpy(pointer, "<label for=\"setColour\">Set Colour:</label>\n");
     pointer = stpcpy(pointer, "<input type=\"text\" id=\"setColour\" />\n");
 
-    pointer = stpcpy(pointer, "<br><br>\n");
-
     pointer = stpcpy(pointer, "<div class=\"slidecontainer\">\n");
-    pointer = stpcpy(pointer, "<p>Speed: <span id=\"speedValue\"></span></p>\n");
-
+    pointer = stpcpy(pointer, "<label for=\"speedSlider\">Speed: <span id=\"speedValue\"></span></label>\n");
     sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"speedSlider\">\n", Get_Speed_From_Period(LED_Get_Period()));
     pointer = stpcpy(pointer, buffer);
-    pointer = stpcpy(pointer, "<p>Brightness: <span id=\"brightnessValue\"></span></p>\n");
+    pointer = stpcpy(pointer, "</div>\n");
 
+    pointer = stpcpy(pointer, "<div class=\"slidecontainer\">\n");
+    pointer = stpcpy(pointer, "<label for=\"brightnessSlider\">Brightness: <span id=\"brightnessValue\"></span></label>\n");
     sprintf(buffer, "<input type=\"range\" min=\"0\" max=\"100\" value=\"%d\" class=\"slider\" id=\"brightnessSlider\">\n", LED_Get_Brightness() * 100 / 255);
     pointer = stpcpy(pointer, buffer);
     pointer = stpcpy(pointer, "</div>\n");
 
-    pointer = stpcpy(pointer, "<br>\n");
-    pointer = stpcpy(pointer, "Forward: <input type=\"checkbox\" id=\"forwardCheckbox\" onclick=\"sendMessage(\'reverse\')\" checked=\"true\">\n");
+    pointer = stpcpy(pointer, "<div class=\"center\">\n");
+    pointer = stpcpy(pointer, "<label for=\"forwardCheckbox\">Forward: </label>\n");
+    sprintf(buffer, "<input type=\"checkbox\" id=\"forwardCheckbox\" onclick=\"toggleForwardCheckbox()\" %s>\n", (LED_Get_Direction() == Forwards ? "checked" : ""));
+    pointer = stpcpy(pointer, buffer);
+    pointer = stpcpy(pointer, "</div>\n");
 
-    pointer = stpcpy(pointer, "<br><br>\n");
-    pointer = stpcpy(pointer, "Syncronise: <input type=\"checkbox\" id=\"syncroniseCheckbox\" onclick=\"sendMessage(\'syncronise\')\" checked=\"false\">\n");
+    pointer = stpcpy(pointer, "<div class=\"center\">\n");
+    pointer = stpcpy(pointer, "<label for=\"synchroniseCheckbox\">Synchronise: </label>\n");
+    sprintf(buffer, "<input type=\"checkbox\" id=\"synchroniseCheckbox\" onclick=\"toggleSynchroniseCheckbox()\" %s>\n", (LED_Get_Synchronise() ? "checked" : ""));
+    pointer = stpcpy(pointer, buffer);
+    pointer = stpcpy(pointer, "</div>\n");
 
+    pointer = stpcpy(pointer, "</div>\n");
+
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+    pointer = stpcpy(pointer, "\n");
+
+    pointer = stpcpy(pointer, "<script src=\"https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js\"></script>\n");
+    pointer = stpcpy(pointer, "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.js\"></script>\n");
+    pointer = stpcpy(pointer, "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.15/lodash.min.js\"></script>\n");
+    // pointer = stpcpy(pointer, "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/spectrum/1.8.0/spectrum.min.css\">\n");
     pointer = stpcpy(pointer, "<script>\n");
 
     pointer = stpcpy(pointer, "function sendPreset(presetNumber) {\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"forwardCheckbox\").checked = true;\n");
-    pointer = stpcpy(pointer, "document.getElementById(\"syncroniseCheckbox\").checked = false;\n");
     pointer = stpcpy(pointer, "sendMessage(\"preset?preset=\" + presetNumber);\n");
-    // pointer = stpcpy(pointer, "console.log(\"preset?preset=\" + presetNumber);\n");
     pointer = stpcpy(pointer, "}\n");
 
     pointer = stpcpy(pointer, "$(document).ready(function() {\n");
@@ -207,6 +265,14 @@ static void Create_Page(char *start)
     pointer = stpcpy(pointer, "v = parseFloat(o._originalInput.v);\n");
     pointer = stpcpy(pointer, "sendMessageThrottled(\"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"&v=\" + Math.round(v));\n");
     // pointer = stpcpy(pointer, "console.log(\"hsv?h=\" + Math.round(h) + \"&s=\" + Math.round(s) + \"&v=\" + Math.round(v));\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, "function toggleForwardCheckbox() {\n");
+    pointer = stpcpy(pointer, "sendMessage(\"forward?value=\" + document.getElementById(\"forwardCheckbox\").checked);\n");
+    pointer = stpcpy(pointer, "}\n");
+
+    pointer = stpcpy(pointer, "function toggleSynchroniseCheckbox() {\n");
+    pointer = stpcpy(pointer, "sendMessage(\"synchronise?value=\" + document.getElementById(\"synchroniseCheckbox\").checked);\n");
     pointer = stpcpy(pointer, "}\n");
 
     pointer = stpcpy(pointer, "var speedValue = document.getElementById(\"speedValue\");\n");
@@ -240,6 +306,8 @@ static void Create_Page(char *start)
     pointer = stpcpy(pointer, "speedSlider.value = result[0];\n");
     pointer = stpcpy(pointer, "brightnessValue.innerHTML = result[1];\n");
     pointer = stpcpy(pointer, "brightnessSlider.value = result[1];\n");
+    pointer = stpcpy(pointer, "forwardCheckbox.checked = result[2];\n");
+    pointer = stpcpy(pointer, "synchroniseCheckbox.checked = result[3];\n");
     pointer = stpcpy(pointer, "}\n");
     pointer = stpcpy(pointer, "}\n");
     pointer = stpcpy(pointer, "}\n");
@@ -254,13 +322,12 @@ static void Create_Page(char *start)
 }
 
 /* An HTTP GET handler */
-static esp_err_t home_handler(httpd_req_t *req)
-{
+static esp_err_t home_handler(httpd_req_t *req) {
     char start[8000];
 
     Create_Page(start);
 
-    printf("%s\n\n", start);
+    // printf("%s\n\n", start);
     printf("length: %d\n", strlen(start));
     httpd_resp_send(req, start, strlen(start));
 
@@ -268,8 +335,7 @@ static esp_err_t home_handler(httpd_req_t *req)
 }
 
 /* An HTTP POST handler */
-static esp_err_t setPreset_get_handler(httpd_req_t *req)
-{
+static esp_err_t setPreset_get_handler(httpd_req_t *req) {
     char* buf;
 
     size_t buf_len = httpd_req_get_url_query_len(req) + 1;
@@ -285,12 +351,9 @@ static esp_err_t setPreset_get_handler(httpd_req_t *req)
                 if (value < NUMBER_OF_PRESETS && LEDConfig_Queue) xQueueOverwriteFromISR(LEDConfig_Queue, &(Pattern_Presets[value]), NULL);
 
                 char start[50];
-                sprintf(start, "%d_%d", Get_Speed_From_Period(Pattern_Presets[value]->period), LED_Get_Brightness() * 100 / 255);
-
+                sprintf(start, "%d_%d_%s_%s", Get_Speed_From_Period(LED_Get_Period()), LED_Get_Brightness() * 100 / 255, ((LED_Get_Direction() == Forwards) ? "false" : "true"), (LED_Get_Synchronise() ? "true" : "false"));
                 httpd_resp_send(req, start, strlen(start));
-            }
-            else
-            {
+            } else {
                 httpd_resp_send(req, "", 0);
             }
         }
@@ -300,8 +363,7 @@ static esp_err_t setPreset_get_handler(httpd_req_t *req)
 }
 
 /* An HTTP POST handler */
-static esp_err_t setHSV_get_handler(httpd_req_t *req)
-{
+static esp_err_t setHSV_get_handler(httpd_req_t *req) {
     char* buf;
 
     size_t buf_len = httpd_req_get_url_query_len(req) + 1;
@@ -312,16 +374,16 @@ static esp_err_t setHSV_get_handler(httpd_req_t *req)
             char* c;
             /* Get value of expected key from query string */
             if (httpd_query_key_value(buf, "h", param, sizeof(param)) == ESP_OK) {
-                staticColour.hue = strtol(param, &c, 10) * 256 / 100;
+                customPattern.colours[0]->hue = strtol(param, &c, 10) * 256 / 100;
             }
             if (httpd_query_key_value(buf, "s", param, sizeof(param)) == ESP_OK) {
-                staticColour.saturation = strtol(param, &c, 10) * 255 / 100;
+                customPattern.colours[0]->saturation = strtol(param, &c, 10) * 255 / 100;
             }
             if (httpd_query_key_value(buf, "v", param, sizeof(param)) == ESP_OK) {
-                staticColour.value = strtol(param, &c, 10) * 255 / 100;
+                customPattern.colours[0]->value = strtol(param, &c, 10) * 255 / 100;
             }
-            if (LEDConfig_Queue) xQueueOverwriteFromISR(LEDConfig_Queue, &staticPatternPointer, NULL);
-            // xQueueSendToBackFromISR(LEDConfig_Queue, &staticPatternPointer, NULL);
+            static LED_Pattern* customPatternPointer = &customPattern;
+            if (LEDConfig_Queue) xQueueOverwriteFromISR(LEDConfig_Queue, &customPatternPointer, NULL);
             httpd_resp_send(req, "", 0);
         }
         free(buf);
@@ -330,8 +392,7 @@ static esp_err_t setHSV_get_handler(httpd_req_t *req)
 }
 
 /* An HTTP POST handler */
-static esp_err_t setBrightness_get_handler(httpd_req_t *req)
-{
+static esp_err_t setBrightness_get_handler(httpd_req_t *req) {
     char*  buf;
 
     size_t buf_len = httpd_req_get_url_query_len(req) + 1;
@@ -353,9 +414,8 @@ static esp_err_t setBrightness_get_handler(httpd_req_t *req)
 }
 
 /* An HTTP POST handler */
-static esp_err_t setSpeed_get_handler(httpd_req_t *req)
-{
-    char*  buf;
+static esp_err_t setSpeed_get_handler(httpd_req_t *req) {
+    char* buf;
 
     size_t buf_len = httpd_req_get_url_query_len(req) + 1;
     if (buf_len > 1) {
@@ -377,23 +437,58 @@ static esp_err_t setSpeed_get_handler(httpd_req_t *req)
 }
 
 /* An HTTP POST handler */
-static esp_err_t setReverse_get_handler(httpd_req_t *req)
-{
-    if (LEDReverse_Semaphore) xSemaphoreGive(LEDReverse_Semaphore);
-    httpd_resp_send(req, "", 0);
+static esp_err_t setReverse_get_handler(httpd_req_t *req) {
+    // if (LEDReverse_Semaphore) xSemaphoreGive(LEDReverse_Semaphore);
+    static bool reverse;
+    char* buf;
+
+    size_t buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+        buf = malloc(buf_len);
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            char param[6];
+            /* Get value of expected key from query string */
+            if (httpd_query_key_value(buf, "value", param, sizeof(param)) == ESP_OK) {
+                reverse = strncmp("true", param, 6); // opposite because forward
+                // If it returns a 0, then the pattern doesn't move and period should be 0
+                if (LEDReverse_Queue) xQueueOverwriteFromISR(LEDReverse_Queue, &reverse, NULL);
+            }
+            httpd_resp_send(req, "", 0);
+        }
+        free(buf);
+    }
     return ESP_OK;
 }
 
 /* An HTTP POST handler */
-static esp_err_t setSyncronise_get_handler(httpd_req_t *req)
-{
-    if (LEDSyncronise_Semaphore) xSemaphoreGive(LEDSyncronise_Semaphore);
-    httpd_resp_send(req, "", 0);
+static esp_err_t setSynchronise_get_handler(httpd_req_t *req) {
+        // if (LEDReverse_Semaphore) xSemaphoreGive(LEDReverse_Semaphore);
+    static bool synchronise;
+    char* buf;
+    size_t buf_len = httpd_req_get_url_query_len(req) + 1;
+    if (buf_len > 1) {
+
+        buf = malloc(buf_len);
+        if (httpd_req_get_url_query_str(req, buf, buf_len) == ESP_OK) {
+            char param[6];
+            /* Get value of expected key from query string */
+            if (httpd_query_key_value(buf, "value", param, sizeof(param)) == ESP_OK) {
+                synchronise = !strncmp("true", param, 6);
+                // If it returns a 0, then the pattern doesn't move and period should be 0
+                if (LEDSynchronise_Queue) xQueueOverwriteFromISR(LEDSynchronise_Queue, &synchronise, NULL);
+            }
+            httpd_resp_send(req, "", 0);
+        }
+        free(buf);
+    }
     return ESP_OK;
+
+    // if (LEDSynchronise_Semaphore) xSemaphoreGive(LEDSynchronise_Semaphore);
+    // httpd_resp_send(req, "", 0);
+    // return ESP_OK;
 }
 
-static TaskHandle_t Get_HTTP_TaskHandle(httpd_handle_t httpHandle)
-{
+static TaskHandle_t Get_HTTP_TaskHandle(httpd_handle_t httpHandle) {
     // httpd_handle_t is a pointer to httpd_data but the definition of httpd_data
     // is hidden. This function manually calculates the pointer location.
 
@@ -425,22 +520,20 @@ static TaskHandle_t Get_HTTP_TaskHandle(httpd_handle_t httpHandle)
     return (*((TaskHandle_t *) (httpHandle + sizeof(httpd_config_t) + sizeof(int) + sizeof(int) + sizeof(int))));
 }
 
-TaskHandle_t Server_Get_HTTP_Task_Handle(void)
-{
-    if (serverHTTPHandle)
-    {
+TaskHandle_t Server_Get_HTTP_Task_Handle(void) {
+    if (serverHTTPHandle) {
         return Get_HTTP_TaskHandle(serverHTTPHandle);
     }
     return NULL;
 }
 
-static httpd_handle_t start_webserver(void)
-{
+static httpd_handle_t start_webserver(void) {
     httpd_handle_t server = NULL;
     httpd_config_t config = HTTPD_DEFAULT_CONFIG();
     config.stack_size = 20480;
     config.task_priority = 5;
     config.server_port = 55000;
+    config.core_id = 0; // Otherwise LED flickers!!!
     // config.server_port = 55001;
     // Start the httpd server
     ESP_LOGI(TAG, "Starting server on port: '%d'", config.server_port);
@@ -453,7 +546,7 @@ static httpd_handle_t start_webserver(void)
         httpd_register_uri_handler(server, &setBrightness);
         httpd_register_uri_handler(server, &setSpeed);
         httpd_register_uri_handler(server, &setReverse);
-        httpd_register_uri_handler(server, &setSyncronise);
+        httpd_register_uri_handler(server, &setSynchronise);
         httpd_register_uri_handler(server, &home);
 
         ESP_LOGI(TAG, "Server started!");
@@ -467,12 +560,9 @@ static httpd_handle_t start_webserver(void)
 }
 
 /* Task to run the http server */
-void Server_Task(void *pvParameters)
-{
-    while (1)
-    {
-        if (WiFi_Get_Connected())
-        {
+void Server_Task(void *pvParameters) {
+    while (1) {
+        if (WiFi_Get_Connected()) {
             serverHTTPHandle = start_webserver();
             vTaskDelay(20000 / portTICK_PERIOD_MS);
 

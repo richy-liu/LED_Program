@@ -5,18 +5,33 @@
 extern "C" {
 #endif
 
-#include "LED.h"
+#include <stdint.h>
 
-extern LED_Colour *Colour_Red;
-extern LED_Colour *Colour_Green;
-extern LED_Colour *Colour_Blue;
-extern LED_Colour *Colour_Bloe;
-extern LED_Colour *Colour_Cyan;
-extern LED_Colour *Colour_Magenta;
-extern LED_Colour *Colour_Yellow;
-extern LED_Colour *Colour_Orange;
-extern LED_Colour *Colour_White;
-extern LED_Colour *Colour_Black;
+typedef struct LED_Colour_HSV {
+    uint8_t hue;
+    uint8_t saturation;
+    uint8_t value;
+} LED_Colour_HSV;
+
+// Important order for comms
+typedef struct LED_Colour_RGB {
+    uint8_t green;
+    uint8_t red;
+    uint8_t blue;
+} LED_Colour_RGB;
+
+extern const LED_Colour_HSV red_HSV;
+extern const LED_Colour_HSV green_HSV;
+extern const LED_Colour_HSV blue_HSV;
+extern const LED_Colour_HSV bloe_HSV;
+extern const LED_Colour_HSV cyan_HSV;
+extern const LED_Colour_HSV magenta_HSV;
+extern const LED_Colour_HSV yellow_HSV;
+extern const LED_Colour_HSV orange_HSV;
+extern const LED_Colour_HSV white_HSV;
+extern const LED_Colour_HSV black_HSV;
+
+extern const LED_Colour_RGB black_RGB;
 
 #ifdef __cplusplus
 }

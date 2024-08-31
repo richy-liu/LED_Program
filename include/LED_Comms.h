@@ -7,13 +7,11 @@ extern "C" {
 
 #include "LED.h"
 
-#define LED_COMMS_TX             GPIO_NUM_17
+#define LED_COMMS_TX             GPIO_NUM_2
 #define LED_COMMS_CHANNEL        RMT_CHANNEL_0
 
 void LED_Comms_Init(void);
-uint8_t* LED_Comms_Get_Tx_Buffer(void);
-void LED_Comms_Refresh_Data(void);
-void LED_Comms_Send(void);
+void LED_Comms_Send(const uint8_t buffer[], const size_t length);
 
 #ifdef __cplusplus
 }

@@ -28,57 +28,46 @@ TaskHandle_t WiFiTaskHandle = NULL;
 TaskHandle_t ServerTaskHandle = NULL;
 TaskHandle_t WaterMarkTaskHandle = NULL;
 
-void WaterMark_Task(void *pvParameters)
-{
+void WaterMark_Task(void *pvParameters) {
     UBaseType_t highWaterMark;
 
-    while(1) {
-        if (WiFiTaskHandle)
-        {
+    // vTaskDelay(portMAX_DELAY);
+
+    while (1) {
+        if (WiFiTaskHandle) {
             highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
             printf("WiFi High Water Mark: %d\n", highWaterMark);
         }
-        if (ServerTaskHandle)
-        {
+        if (ServerTaskHandle) {
             highWaterMark = uxTaskGetStackHighWaterMark(ServerTaskHandle);
             printf("Server High Water Mark: %d\n", highWaterMark);
         }
-        if (Server_Get_HTTP_Task_Handle())
-        {
+        if (Server_Get_HTTP_Task_Handle()) {
             highWaterMark = uxTaskGetStackHighWaterMark(Server_Get_HTTP_Task_Handle());
             printf("HTTP High Water Mark: %d\n", highWaterMark);
         }
-        if (LEDTaskHandle)
-        {
+        if (LEDTaskHandle) {
             highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
             printf("LED High Water Mark: %d\n", highWaterMark);
         }
-        if (WaterMarkTaskHandle)
-        {
+        if (WaterMarkTaskHandle) {
             highWaterMark = uxTaskGetStackHighWaterMark(WaterMarkTaskHandle);
             printf("Self High Water Mark: %d\n", highWaterMark);
         }
 
         printf("\n");
 
-        // gpio_set_level(5, 0);
         vTaskDelay(5000 / portTICK_PERIOD_MS);
-        // gpio_set_level(5, 1);
-        // vTaskDelay(1000 / portTICK_PERIOD_MS);
     }
 }
 
-void app_main(void)
-{
+void app_main(void) {
     esp_err_t ret = nvs_flash_init();
 
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
         ESP_ERROR_CHECK(nvs_flash_erase());
         ret = nvs_flash_init();
     }
-
-    Pattern_Initialise();
-    Speed_Period_Converter_Initialise();
 
 // #include "esp_chip_info.h"
 
@@ -99,37 +88,40 @@ void app_main(void)
 
     gpio_set_direction(5, GPIO_MODE_OUTPUT);
 
-    xTaskCreate(WiFi_Task, "WiFi_Task", 4096, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle);
-    xTaskCreate(Server_Task, "Server_Task", 4096, NULL, 2, &ServerTaskHandle);
-    xTaskCreate(LED_Task, "LED_Task", 8192, NULL, 3, &LEDTaskHandle);
-    xTaskCreate(WaterMark_Task, "WaterMark_Task", 4096, NULL, tskIDLE_PRIORITY, &WaterMarkTaskHandle);
 
-    while (1)
-    {
-        // portTICK_PERIOD_MS == 1
+// xTaskCreatePinnedToCore
+    xTaskCreatePinnedToCore(WiFi_Task, "WiFi_Task", 4096, NULL, tskIDLE_PRIORITY, &WiFiTaskHandle, 0);
+    xTaskCreatePinnedToCore(Server_Task, "Server_Task", 4096, NULL, 2, &ServerTaskHandle, 0);
+    xTaskCreatePinnedToCore(LED_Task, "LED_Task", 8192, NULL, configMAX_PRIORITIES - 1, &LEDTaskHandle, 1);
+    // xTaskCreatePinnedToCore(WaterMark_Task, "WaterMark_Task", 4096, NULL, tskIDLE_PRIORITY, &WaterMarkTaskHandle, 0);
 
-        // vTaskDelay(5000 / portTICK_PERIOD_MS);
-        //
-        // xQueueSendToBack(LEDConfig_Queue, &Pattern_Red_Green_Blue, portMAX_DELAY);
-        //
-        // vTaskDelay(5000 / portTICK_PERIOD_MS);
-        //
-        // xQueueSendToBack(LEDConfig_Queue, &Pattern_Rainbow, portMAX_DELAY);
-        //
-        // vTaskDelay(5000 / portTICK_PERIOD_MS);
-        //
-        // xQueueSendToBack(LEDConfig_Queue, &Pattern_Aqua_Wave, portMAX_DELAY);
+    UBaseType_t highWaterMark;
 
-        // vTaskDelay(5000 / portTICK_PERIOD_MS);
-        //
-        // xQueueSendToBack(LEDConfig_Queue, &Pattern_White, portMAX_DELAY);
+    while (1) {
+        // if (WiFiTaskHandle) {
+        //     highWaterMark = uxTaskGetStackHighWaterMark(WiFiTaskHandle);
+        //     printf("WiFi High Water Mark: %d\n", highWaterMark);
+        // }
+        if (ServerTaskHandle) {
+            highWaterMark = uxTaskGetStackHighWaterMark(ServerTaskHandle);
+            printf("Server High Water Mark: %d\n", highWaterMark);
+        }
+        if (Server_Get_HTTP_Task_Handle()) {
+            highWaterMark = uxTaskGetStackHighWaterMark(Server_Get_HTTP_Task_Handle());
+            printf("HTTP High Water Mark: %d\n", highWaterMark);
+        }
+        if (LEDTaskHandle) {
+            highWaterMark = uxTaskGetStackHighWaterMark(LEDTaskHandle);
+            printf("LED High Water Mark: %d\n", highWaterMark);
+        }
+        if (WaterMarkTaskHandle) {
+            highWaterMark = uxTaskGetStackHighWaterMark(WaterMarkTaskHandle);
+            printf("Self High Water Mark: %d\n", highWaterMark);
+        }
 
-        // xQueueSendToBack(LEDConfig_Queue, &Pattern_France, portMAX_DELAY);
-        vTaskDelay(portMAX_DELAY);
+        printf("\n");
 
-        // extern const LED_Pattern *Pattern_Rainbow;
-        // extern const LED_Pattern *Pattern_Red_Green_Blue;
-        // extern const LED_Pattern *Pattern_Aqua_Wave;
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
     }
 
     esp_restart();

@@ -9,35 +9,60 @@
 #include "freertos/semphr.h"
 #include "freertos/task.h"
 #include "driver/gpio.h"
-#include "driver/rmt.h"
 
 #include "Colour_Defines.h"
-#include "Pattern_Defines.h"
 #include "LED.h"
 #include "LED_Comms.h"
+
+typedef struct LED_Data {
+    size_t ledCount;
+    size_t arraySize;
+
+    LED_Colour_HSV* coloursHSV;
+    LED_Colour_RGB* coloursRGB;
+    LED_Colour_RGB* coloursRGBCopy;
+
+    // bool solidColour;
+    // LED_Colour_HSV customColour;
+    LED_Pattern* ledPattern;
+
+    uint8_t brightness;
+    int16_t currentOffset;
+    uint16_t period;
+    uint8_t cycles;
+    enum Direction direction;
+    bool synchronise;
+} LED_Data;
+
+static LED_Colour_HSV customColour = {0};
+static const LED_Colour_HSV* customColours[] = {&customColour};
+LED_Pattern customPattern = {
+    .numberOfColours = 1,
+    .colours = &customColours
+};
 
 static int difference(int num1, int num2);
 static void print_values(void);
 // static uint8_t fast_square_root(int number);
 
-static LED_Data* LEDData[NUMBER_OF_LEDS];
+// static LED_Data* LEDData.coloursRGB[LEDData.ledCount];
 // The copy is for changing the colour if its synced.
-static LED_Colour_RGB* LEDDataCopy[NUMBER_OF_LEDS];
+// static LED_Colour_RGB LEDData.coloursRGB[LEDData.ledCount];
+// static LED_Colour_RGB LEDData.coloursRGBCopy[LEDData.ledCount];
 
-char currentPatternRaw[500] = {};
-LED_Pattern* currentPattern = NULL;
-LED_Colour* currentColours[MAXIMUM_COLOURS];
+// char LEDDataRaw[500] = {};
+LED_Data LEDData = {
+    .brightness = 40 // Just one default value.
+};
 
-LED_Colour* customColours[MAXIMUM_COLOURS];
-
-static uint8_t brightness = 40;
-static int16_t currentOffset = 0;
+// LED_Colour_RGB currentColours[MAXIMUM_COLOURS];
+// LED_Colour_RGB customColours[MAXIMUM_COLOURS];
 
 QueueHandle_t LEDConfig_Queue = NULL;
 QueueHandle_t LEDPeriod_Queue = NULL;
 QueueHandle_t LEDBrightness_Queue = NULL;
-SemaphoreHandle_t LEDReverse_Semaphore = NULL;
-SemaphoreHandle_t LEDSyncronise_Semaphore = NULL;
+QueueHandle_t LEDReverse_Queue = NULL;
+QueueHandle_t LEDSynchronise_Queue = NULL;
 
 // cos values between 0 and 2pi linearly scaled between 10000 and 0
 // static uint16_t cos_lookup[100] = {
@@ -74,254 +99,211 @@ SemaphoreHandle_t LEDSyncronise_Semaphore = NULL;
 //     58564, 59049, 59536, 60025, 60516, 61009, 61504, 62001, 62500, 63001, 63504,
 //     64009, 64516, 65025};
 
-static void HSVtoRGB(LED_Data* LEDDataLocal, LED_Colour LEDColour)
-{
-  if (!LEDColour.saturation)
-  {
-      *LEDDataLocal->red = LEDColour.value;
-      *LEDDataLocal->green = LEDColour.value;
-      *LEDDataLocal->blue = LEDColour.value;
-      return;
-  }
+static void HSVtoRGB(LED_Colour_RGB* LEDDataLocal, LED_Colour_HSV* LEDColour) {
+    if (LEDColour->saturation == 0) {
+        LEDDataLocal->red = LEDColour->value;
+        LEDDataLocal->green = LEDColour->value;
+        LEDDataLocal->blue = LEDColour->value;
+        return;
+    }
 
-  // region = LEDColour.hue / 43;
-  // remainder = (LEDColour.hue % 43) * 6;
+  // region = LEDColour->hue / 43;
+  // remainder = (LEDColour->hue % 43) * 6;
 
-  // p = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
-  // q = (LEDColour.value * (255 - ((LEDColour.saturation * remainder) >> 8))) >> 8;
-  // t = (LEDColour.value * (255 - ((LEDColour.saturation * (255 - remainder)) >> 8))) >> 8;
+  // p = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
+  // q = (LEDColour->value * (255 - ((LEDColour->saturation * remainder) >> 8))) >> 8;
+  // t = (LEDColour->value * (255 - ((LEDColour->saturation * (255 - remainder)) >> 8))) >> 8;
 
-  switch (LEDColour.hue / 43)
-  {
+    switch (LEDColour->hue / 43) {
       case 0:
-          *LEDDataLocal->red = LEDColour.value;
-          *LEDDataLocal->green = (LEDColour.value * (255 - ((LEDColour.saturation * (255 - (LEDColour.hue % 43) * 6)) >> 8))) >> 8;
-          *LEDDataLocal->blue = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
+          LEDDataLocal->red = LEDColour->value;
+          LEDDataLocal->green = (LEDColour->value * (255 - ((LEDColour->saturation * (255 - (LEDColour->hue % 43) * 6)) >> 8))) >> 8;
+          LEDDataLocal->blue = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
           break;
       case 1:
-          *LEDDataLocal->red = (LEDColour.value * (255 - ((LEDColour.saturation * (LEDColour.hue % 43) * 6) >> 8))) >> 8;
-          *LEDDataLocal->green = LEDColour.value;
-          *LEDDataLocal->blue = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
+          LEDDataLocal->red = (LEDColour->value * (255 - ((LEDColour->saturation * (LEDColour->hue % 43) * 6) >> 8))) >> 8;
+          LEDDataLocal->green = LEDColour->value;
+          LEDDataLocal->blue = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
           break;
       case 2:
-          *LEDDataLocal->red = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
-          *LEDDataLocal->green = LEDColour.value;
-          *LEDDataLocal->blue = (LEDColour.value * (255 - ((LEDColour.saturation * (255 - (LEDColour.hue % 43) * 6)) >> 8))) >> 8;
+          LEDDataLocal->red = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
+          LEDDataLocal->green = LEDColour->value;
+          LEDDataLocal->blue = (LEDColour->value * (255 - ((LEDColour->saturation * (255 - (LEDColour->hue % 43) * 6)) >> 8))) >> 8;
           break;
       case 3:
-          *LEDDataLocal->red = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
-          *LEDDataLocal->green = (LEDColour.value * (255 - ((LEDColour.saturation * (LEDColour.hue % 43) * 6) >> 8))) >> 8;
-          *LEDDataLocal->blue = LEDColour.value;
+          LEDDataLocal->red = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
+          LEDDataLocal->green = (LEDColour->value * (255 - ((LEDColour->saturation * (LEDColour->hue % 43) * 6) >> 8))) >> 8;
+          LEDDataLocal->blue = LEDColour->value;
           break;
       case 4:
-          *LEDDataLocal->red = (LEDColour.value * (255 - ((LEDColour.saturation * (255 - (LEDColour.hue % 43) * 6)) >> 8))) >> 8;
-          *LEDDataLocal->green = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
-          *LEDDataLocal->blue = LEDColour.value;
+          LEDDataLocal->red = (LEDColour->value * (255 - ((LEDColour->saturation * (255 - (LEDColour->hue % 43) * 6)) >> 8))) >> 8;
+          LEDDataLocal->green = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
+          LEDDataLocal->blue = LEDColour->value;
           break;
       default:
-          *LEDDataLocal->red = LEDColour.value;
-          *LEDDataLocal->green = (LEDColour.value * (255 - LEDColour.saturation)) >> 8;
-          *LEDDataLocal->blue = (LEDColour.value * (255 - ((LEDColour.saturation * (LEDColour.hue % 43) * 6) >> 8))) >> 8;
+          LEDDataLocal->red = LEDColour->value;
+          LEDDataLocal->green = (LEDColour->value * (255 - LEDColour->saturation)) >> 8;
+          LEDDataLocal->blue = (LEDColour->value * (255 - ((LEDColour->saturation * (LEDColour->hue % 43) * 6) >> 8))) >> 8;
           break;
-  }
+    }
 }
 
-void LED_Turn_Off(void)
-{
+void LED_Turn_Off(void) {
     // uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
-    // memset(txBuffer, 0, 3 * NUMBER_OF_LEDS);
+    // memset(txBuffer, 0, 3 * LEDData.ledCount);
     //
     // LED_Comms_Send();
 
-    memcpy(currentPattern, Pattern_Off, sizeof(LED_Pattern));
+    memset(LEDData.coloursRGB, 0, LEDData.arraySize);
 }
 
-static void LED_Shift_Forward(void)
-{
-    currentOffset++;
-    if (currentOffset >= NUMBER_OF_LEDS)
-    {
-        currentOffset = 0;
+static void LED_Shift_Forward(void) {
+    // printf("for\n");
+    LEDData.currentOffset++;
+    if (LEDData.currentOffset >= LEDData.ledCount) {
+        LEDData.currentOffset = 0;
     }
 
-    uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
+    // uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
 
-    if (currentPattern->syncronised)
-    {
-        for (int i = 0; i < NUMBER_OF_LEDS; i++)
-        {
-            *LEDData[i]->red = LEDDataCopy[currentOffset]->red;
-            *LEDData[i]->green = LEDDataCopy[currentOffset]->green;
-            *LEDData[i]->blue = LEDDataCopy[currentOffset]->blue;
+    if (LEDData.synchronise) {
+        if (LEDData.ledPattern->animationType == Animation_Repeating) {
+            if (LEDData.currentOffset >= LEDData.ledPattern->numberOfColours) {
+                LEDData.currentOffset = 0;
+            }
         }
+
+        LED_Colour_RGB nextColor = LEDData.coloursRGBCopy[LEDData.currentOffset];
+        for (uint32_t i = 0; i < LEDData.ledCount; i++) {
+            memcpy(LEDData.coloursRGB + i, &nextColor, sizeof(*LEDData.coloursRGB));
+        }
+    } else {
+        LED_Colour_RGB colourTemp = {0};
+
+        switch (LEDData.ledPattern->animationType) {
+            case Animation_Repeating: {
+                colourTemp = LEDData.coloursRGB[LEDData.ledPattern->numberOfColours - 1];
+                // HSVtoRGB(&colourTemp, LEDData.coloursRGB[LEDData.ledPattern->numberOfColours - 1]);
+                break;
+            }
+            case Animation_Wave: {
+                colourTemp = LEDData.coloursRGB[LEDData.ledCount - 1];
+                // memcpy(&colourTemp, &LEDData.coloursRGB[LEDData.ledCount - 1], sizeof(colourTemp));
+                break;
+            }
+            default: break;
+        }
+
+        memmove(LEDData.coloursRGB + 1, LEDData.coloursRGB, LEDData.arraySize - sizeof(*LEDData.coloursRGB));
+        memcpy(LEDData.coloursRGB, &colourTemp, sizeof(colourTemp));
     }
-    else
-    {
-        LED_Colour_RGB colourTemp;
-
-        if (currentPattern->patternType == Pattern_Type_Repeating)
-        {
-            colourTemp.red = *LEDData[currentPattern->numberOfColours - 1]->red;
-            colourTemp.green = *LEDData[currentPattern->numberOfColours - 1]->green;
-            colourTemp.blue = *LEDData[currentPattern->numberOfColours - 1]->blue;
-        }
-        else
-        {
-            colourTemp.red = *LEDData[LAST_LED_INDEX]->red;
-            colourTemp.green = *LEDData[LAST_LED_INDEX]->green;
-            colourTemp.blue = *LEDData[LAST_LED_INDEX]->blue;
-        }
-
-        memmove(txBuffer + 3, txBuffer, LAST_LED_INDEX * 3);
-        *LEDData[0]->red = colourTemp.red;
-        *LEDData[0]->green = colourTemp.green;
-        *LEDData[0]->blue = colourTemp.blue;
-    }
-
-    // Could change this to a memmove later in LED_Comms
-    LED_Comms_Refresh_Data();
 }
 
-static void LED_Shift_Backward(void)
-{
-    if (currentOffset)
-    {
-        currentOffset--;
-    }
-    else
-    {
-        currentOffset = LAST_LED_INDEX;
+static void LED_Shift_Backward(void) {
+    // printf("oiwruh\n");
+    LEDData.currentOffset--;
+    if (LEDData.currentOffset < 0) {
+        LEDData.currentOffset = LEDData.ledCount - 1;
     }
 
-    if (currentPattern->syncronised)
-    {
-        for (int i = 0; i < NUMBER_OF_LEDS; i++)
-        {
-            *LEDData[i]->red = LEDDataCopy[currentOffset]->red;
-            *LEDData[i]->green = LEDDataCopy[currentOffset]->green;
-            *LEDData[i]->blue = LEDDataCopy[currentOffset]->blue;
-        }
-    }
-    else
-    {
-        LED_Colour_RGB colourTemp;
-        uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
-
-        if (currentPattern->patternType == Pattern_Type_Repeating
-                && currentPattern->numberOfColours > 1)
-        {
-            colourTemp.red = *LEDData[1]->red;
-            colourTemp.green = *LEDData[1]->green;
-            colourTemp.blue = *LEDData[1]->blue;
-        }
-        else
-        {
-            colourTemp.red = *LEDData[0]->red;
-            colourTemp.green = *LEDData[0]->green;
-            colourTemp.blue = *LEDData[0]->blue;
+    if (LEDData.synchronise) {
+        if (LEDData.ledPattern->animationType == Animation_Repeating) {
+            if (LEDData.currentOffset < LEDData.ledCount - LEDData.ledPattern->numberOfColours) {
+                LEDData.currentOffset = LEDData.ledCount - 1;
+            }
         }
 
-        memmove(txBuffer, txBuffer + 3, LAST_LED_INDEX * 3);
-        *LEDData[LAST_LED_INDEX]->red = colourTemp.red;
-        *LEDData[LAST_LED_INDEX]->green = colourTemp.green;
-        *LEDData[LAST_LED_INDEX]->blue = colourTemp.blue;
-    }
+        LED_Colour_RGB nextColor = LEDData.coloursRGBCopy[LEDData.currentOffset];
+        for (uint32_t i = 0; i < LEDData.ledCount; i++) {
+            memcpy(LEDData.coloursRGB + i, &nextColor, sizeof(*LEDData.coloursRGB));
+        }
+    } else {
+        LED_Colour_RGB colourTemp = {0};
 
-    // Could change this to a memmove later in LED_Comms
-    LED_Comms_Refresh_Data();
+        switch (LEDData.ledPattern->animationType) {
+            case Animation_Repeating: {
+                colourTemp = LEDData.coloursRGB[LEDData.ledCount - LEDData.ledPattern->numberOfColours];
+                // HSVtoRGB(&colourTemp, LEDData.ledPattern->colours[0]);
+                break;
+            }
+            case Animation_Wave: {
+                colourTemp = LEDData.coloursRGB[0];
+                // memcpy(&colourTemp, &LEDData.coloursRGB[0], sizeof(colourTemp));
+                break;
+            }
+            default: break;
+        }
+
+        memmove(LEDData.coloursRGB, LEDData.coloursRGB + 1, LEDData.arraySize - sizeof(*LEDData.coloursRGB));
+        memcpy(LEDData.coloursRGB + LEDData.ledCount - 1, &colourTemp, sizeof(colourTemp));
+    }
 }
 
-static void LED_Create_Repeating(LED_Colour* colours[], int numberOfColours)
-{
-    LED_Colour colour;
-    int offset = currentOffset;
+static void LED_Create_Repeating(const LED_Colour_HSV* const colours[], const int numberOfColours) {
+    LED_Colour_HSV colour;
+    int offset = LEDData.currentOffset;
 
-    if (currentPattern->syncronised) offset = 0;
+    if (LEDData.synchronise) offset = 0;
 
-    for (int i = 0, j = numberOfColours - (offset % numberOfColours); i < NUMBER_OF_LEDS; i++, j++)
-    {
+    for (uint32_t i = 0, j = numberOfColours - (offset % numberOfColours); i < LEDData.ledCount; i++, j++) {
         j %= numberOfColours;
         colour.hue = colours[j]->hue;
         colour.saturation = colours[j]->saturation;
-        colour.value = colours[j]->value * brightness / 255;
+        colour.value = colours[j]->value * LEDData.brightness / 255;
 
-        HSVtoRGB(LEDData[i], colour);
-        // printf("r: %d, g: %d, b: %d\n", *LEDData[i]->red, *LEDData[i]->green, *LEDData[i]->blue);
+        HSVtoRGB(&LEDData.coloursRGB[i], &colour);
+        // printf("%d, h:%d, s: %d, v: %d, r: %d, g: %d, b: %d\n", i, colour.hue, colour.saturation, colour.value, LEDData.coloursRGB[i].red, LEDData.coloursRGB[i].green, LEDData.coloursRGB[i].blue);
     }
 }
 
-static void LED_Create_Wave(LED_Colour* colours[], int numberOfColours)
-{
+static void LED_Create_Wave(const LED_Colour_HSV* const colours[], const int numberOfColours) {
     int colourIndex0 = -1, colourIndex1 = 0;
-    for (int i = 0, j = 0, start = 0, end = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        if (i == end)
-        {
+    for (uint32_t i = 0, j = 0, start = 0, end = 0; i < LEDData.ledCount; i++) {
+        if (i == end) {
             j++;
             colourIndex0++;
             colourIndex1++;
             start = end;
 
             // find the next end, rounded divison
-            if (numberOfColours & 1)
-            {
+            if (numberOfColours & 1) {
                 end = (j * LAST_LED_INDEX + 1 + (numberOfColours / 2)) / numberOfColours;
-            }
-            else
-            {
+            } else {
                 end = (j * LAST_LED_INDEX + (numberOfColours / 2)) / numberOfColours;
             }
 
             // if it's the last one then set the value of end to the next
-            if (end == LAST_LED_INDEX)
-            {
-                end = NUMBER_OF_LEDS;
+            if (end == LAST_LED_INDEX) {
+                end = LEDData.ledCount;
                 colourIndex1 = 0;
             }
         }
 
-        LED_Colour colour;
+        LED_Colour_HSV colour;
 
-        if (!(colours[colourIndex0]->value && colours[colourIndex1]->value))
-        {
-            if (!colours[colourIndex0]->value)
-            {
+        if (!(colours[colourIndex0]->value && colours[colourIndex1]->value)) {
+            if (!colours[colourIndex0]->value) {
                 colour.hue = colours[colourIndex1]->hue;
-            }
-            else
-            {
+            } else {
                 colour.hue = colours[colourIndex0]->hue;
             }
-        }
-        else if (colours[colourIndex0]->saturation && colours[colourIndex1]->saturation)
-        {
+        } else if (colours[colourIndex0]->saturation && colours[colourIndex1]->saturation)  {
             if ((colours[colourIndex0]->hue - colours[colourIndex1]->hue <= 128
-                && colours[colourIndex0]->hue - colours[colourIndex1]->hue >= 0)
-                || (colours[colourIndex1]->hue - colours[colourIndex0]->hue <= 128
-                && colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0))
-            {
-                colour.hue = colours[colourIndex0]->hue + difference(i, start) * (colours[colourIndex1]->hue - colours[colourIndex0]->hue) / difference(start, end);
-            }
-            else
-            {
-                if (colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0)
-                {
-                    colour.hue = colours[colourIndex0]->hue + difference(i, start) * ~((uint8_t) (colours[colourIndex0]->hue - colours[colourIndex1]->hue)) / difference(start, end);
-                }
-                else
-                {
+                    && colours[colourIndex0]->hue - colours[colourIndex1]->hue >= 0)
+                    || (colours[colourIndex1]->hue - colours[colourIndex0]->hue <= 128
+                    && colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0)) {
+                    colour.hue = colours[colourIndex0]->hue + difference(i, start) * (colours[colourIndex1]->hue - colours[colourIndex0]->hue) / difference(start, end);
+            } else {
+                if (colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0) {
+                        colour.hue = colours[colourIndex0]->hue + difference(i, start) * ~((uint8_t) (colours[colourIndex0]->hue - colours[colourIndex1]->hue)) / difference(start, end);
+                } else {
                     colour.hue = colours[colourIndex0]->hue + difference(i, start) * ((uint8_t) (colours[colourIndex1]->hue - colours[colourIndex0]->hue)) / difference(start, end);
                 }
             }
-        }
-        else
-        {
-            if(colours[colourIndex0]->saturation)
-            {
+        } else {
+            if (colours[colourIndex0]->saturation) {
                 colour.hue = colours[colourIndex0]->hue;
-            }
-            else
-            {
+            } else {
                 colour.hue = colours[colourIndex1]->hue;
             }
         }
@@ -334,227 +316,195 @@ static void LED_Create_Wave(LED_Colour* colours[], int numberOfColours)
         // }
         // else
         // {
-        //     if (colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0)
-        //     {
+        //     if (colours[colourIndex1]->hue - colours[colourIndex0]->hue >= 0) {
         //         hue = colours[colourIndex0]->hue + difference(i, start) * -(colours[colourIndex0]->hue - colours[colourIndex1]->hue + 240) / difference(start, end);
-        //     }
-        //     else
-        //     {
+        //     } else {
         //         hue = colours[colourIndex0]->hue + difference(i, start) * -(colours[colourIndex0]->hue - colours[colourIndex1]->hue - 240) / difference(start, end);
         //     }
         // }
 
-        // if (hue >= 0)
-        // {
+        // if (hue >= 0) {
         //     colour.hue = hue;
-        // }
-        // else
-        // {
+        // } else {
         //     colour.hue = 240 + hue;
         // }
 
         colour.saturation = colours[colourIndex0]->saturation + difference(i, start) * (colours[colourIndex1]->saturation - colours[colourIndex0]->saturation) / difference(start, end);
         // colour.value = colours[colourIndex0]->value + difference(i, start) * (colours[colourIndex1]->value - colours[colourIndex0]->value) / difference(start, end);
         // colour.value = (colours[colourIndex0]->value + difference(i, start) * (colours[colourIndex1]->value - colours[colourIndex0]->value) / difference(start, end)) * brightness / 255;
-        colour.value = (colours[colourIndex0]->value + difference(i, start) * (colours[colourIndex1]->value - colours[colourIndex0]->value) / difference(start, end)) * brightness / 255;
+        colour.value = (colours[colourIndex0]->value + difference(i, start) * (colours[colourIndex1]->value - colours[colourIndex0]->value) / difference(start, end)) * LEDData.brightness / 255;
         // uint32_t contribution = (difference(i, start) * colours[colourIndex0]->value / difference(start, end) * difference(i, start) * colours[colourIndex0]->value / difference(start, end))
         //                     + (difference(i, end) * colours[colourIndex1]->value / difference(start, end) * difference(i, end) * colours[colourIndex1]->value / difference(start, end));
         // colour.value = fast_square_root((uint16_t) contribution);
         // printf("%d, %d, from %d to %d, ", (uint8_t) colour.hue, difference(i, start), colours[colourIndex0]->hue, colours[colourIndex1]->hue);
         // printf("dif: %d, dif: %d, d: %d, c: %d\n\r", difference(i, start) * colours[colourIndex0]->value / difference(start, end), difference(i, end) * colours[colourIndex1]->value / difference(start, end), contribution, colour.value);
 
-        int offset = currentOffset;
-        if (currentPattern->syncronised) offset = 0;
+        uint32_t offset = LEDData.currentOffset;
+        if (LEDData.synchronise) offset = 0;
 
-        int index = i + offset;
-        if (index >= NUMBER_OF_LEDS)
-        {
-            index -= NUMBER_OF_LEDS;
+        uint32_t index = i + offset;
+        if (index >= LEDData.ledCount) {
+            index -= LEDData.ledCount;
         }
-        HSVtoRGB(LEDData[index], colour);
+        HSVtoRGB(&LEDData.coloursRGB[index], &colour);
         //
         // printf("h: %d, s: %d, v: %d, ", (uint8_t) colour.hue, colour.saturation, colour.value);
+        // printf("2: %d,%d,%lu,%lu, h:%d, s: %d, v: %d, r: %d, g: %d, b: %d\n", LEDData.brightness, LEDData.currentOffset, i, index, colour.hue, colour.saturation, colour.value, LEDData.coloursRGB[i].red, LEDData.coloursRGB[i].green, LEDData.coloursRGB[i].blue);
+
         //
-        // printf("r: %d, g: %d, b: %d\n", *LEDData[i]->red, *LEDData[i]->green, *LEDData[i]->blue);
+        // printf("r: %d, g: %d, b: %d\n", *LEDData.coloursRGB[i]->red, *LEDData.coloursRGB[i]->green, *LEDData.coloursRGB[i]->blue);
     }
 }
 
-static void LED_Create_Pattern(void)
-{
-    switch (currentPattern->patternType)
-    {
-        case Pattern_Type_Repeating:
-            LED_Create_Repeating(currentPattern->colours, currentPattern->numberOfColours);
+static void LED_Create_Pattern(void) {
+// printf("0: %d\n", LEDData.currentOffset);
+
+    switch (LEDData.ledPattern->animationType) {
+        case Animation_Repeating: {
+            LED_Create_Repeating(LEDData.ledPattern->colours, LEDData.ledPattern->numberOfColours);
             break;
-        case Pattern_Type_Wave:
-            LED_Create_Wave(currentPattern->colours, currentPattern->numberOfColours);
+        }
+        case Animation_Wave: {
+            LED_Create_Wave(LEDData.ledPattern->colours, LEDData.ledPattern->numberOfColours);
             break;
+        }
         default: break;
     }
 
-    for (int i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        LEDDataCopy[i]->red = *LEDData[i]->red;
-        LEDDataCopy[i]->green = *LEDData[i]->green;
-        LEDDataCopy[i]->blue = *LEDData[i]->blue;
+    for (uint32_t i = 0; i < LEDData.ledCount; i++) {
+        memcpy(LEDData.coloursRGBCopy, LEDData.coloursRGB, LEDData.arraySize);
     }
 
-    currentOffset--;
-    LED_Shift_Forward();
+    // LEDData.currentOffset--;
+    // LED_Shift_Forward();
 
-    LED_Comms_Refresh_Data();
+    // LED_Comms_Refresh_Data();
 }
 
-static void print_values(void)
-{
-    for (int i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        if (!(i % 4))
-        {
+static void print_values(void) {
+    for (uint32_t i = 0; i < LEDData.ledCount; i++) {
+        if (!(i % 4)) {
             printf("\n");
         }
-        printf("{%3u, %3u, %3u}, ", *LEDData[i]->red, *LEDData[i]->green, *LEDData[i]->blue);
+        printf("{%3u, %3u, %3u}, ", LEDData.coloursRGB[i].red, LEDData.coloursRGB[i].green, LEDData.coloursRGB[i].blue);
     }
     printf("\n");
 }
 
-static int difference(int num1, int num2)
-{
+static int difference(int num1, int num2) {
     return num1 > num2 ? num1 - num2 : num2 - num1;
 }
 
-uint16_t LED_Get_Period(void)
-{
-    return currentPattern->period;
+uint16_t LED_Get_Period(void) {
+    return LEDData.period;
 }
 
-uint8_t LED_Get_Brightness(void)
-{
-    return brightness;
+uint8_t LED_Get_Brightness(void) {
+    return LEDData.brightness;
 }
 
-void LED_Init(void)
-{
-    LED_Comms_Init();
+enum Direction LED_Get_Direction(void) {
+    return LEDData.direction;
+}
 
-    currentPattern = malloc(sizeof(LED_Pattern));
+bool LED_Get_Synchronise(void) {
+    return LEDData.synchronise;
+}
 
-    LEDConfig_Queue = xQueueCreate(1, sizeof(LED_Pattern));
+void LED_Init(void) {
+    LEDData.ledCount = NUMBER_OF_LEDS;
+    LEDData.arraySize = LEDData.ledCount * 3;
+
+    LEDData.coloursHSV = malloc(LEDData.arraySize);
+    LEDData.coloursRGB = malloc(LEDData.arraySize);
+    LEDData.coloursRGBCopy = malloc(LEDData.arraySize);
+
+    LEDData.arraySize = LEDData.ledCount * 3;
+    LEDData.ledPattern = &customPattern;
+
+    LEDConfig_Queue = xQueueCreate(1, sizeof(LED_Pattern*));
     LEDPeriod_Queue = xQueueCreate(1, sizeof(uint16_t));
     LEDBrightness_Queue = xQueueCreate(1, sizeof(uint8_t));
-    LEDReverse_Semaphore = xSemaphoreCreateBinary();
-    LEDSyncronise_Semaphore = xSemaphoreCreateBinary();
-
-    uint8_t* txBuffer = LED_Comms_Get_Tx_Buffer();
-    int offset;
-    for (int i = 0; i < NUMBER_OF_LEDS; i++)
-    {
-        LEDDataCopy[i] = malloc(sizeof(LED_Colour_RGB));
-
-        LEDData[i] = malloc(sizeof(LED_Data));
-        offset = (i * 3);
-        LEDData[i]->red = (txBuffer + offset + 1);
-        LEDData[i]->green = (txBuffer + offset);
-        LEDData[i]->blue = (txBuffer + offset + 2);
-    }
+    LEDReverse_Queue = xQueueCreate(1, sizeof(bool));
+    LEDSynchronise_Queue = xQueueCreate(1, sizeof(bool));
 }
 
-void LED_Task(void *pvParameters)
-{
+void LED_Task(void *pvParameters) {
 
     LED_Init();
-
-    LED_Turn_Off();
-    // memcpy(currentPattern, Pattern_Black, sizeof(LED_Pattern));
-
-    if (!currentPattern)
-    {
-        while (1) vTaskDelay(portMAX_DELAY);
-    }
+    LED_Comms_Init();
 
     LED_Create_Pattern();
-    // LED_Comms_Refresh_Data();
 
     // print_values();
 
     uint16_t newPeriod;
     uint16_t timer = 0;
-
-    LED_Pattern* newPattern;
     uint8_t newBrightness;
+    bool patternChanged = true;
 
-    uint8_t patternChanged = 1;
+    while (1) {
 
-    while (1)
-    {
-
-        if (xQueueReceive(LEDPeriod_Queue, &newPeriod, 0))
-        {
-            currentPattern->period = newPeriod;
+        if (xQueueReceive(LEDPeriod_Queue, &newPeriod, 0)) {
+            LEDData.period = newPeriod;
+            // printf("New period: %d\n", LEDData.period);
         }
 
-        if (xSemaphoreTake(LEDReverse_Semaphore, 0))
-        {
-            currentPattern->direction = !currentPattern->direction;
+        static bool direction;
+        if (xQueueReceive(LEDReverse_Queue, &direction, 0)) {
+            LEDData.direction = direction;
+            // printf("New direction: %d\n", LEDData.direction);
         }
 
-        if (xSemaphoreTake(LEDSyncronise_Semaphore, 0))
-        {
-            currentPattern->syncronised = !currentPattern->syncronised;
-            patternChanged = 1;
-            LED_Create_Pattern();
+        static bool synchronise;
+        if (xQueueReceive(LEDSynchronise_Queue, &synchronise, 0)) {
+            if (LEDData.synchronise != synchronise) {
+                LEDData.synchronise = synchronise;
+                patternChanged = true;
+                LED_Create_Pattern();
+            }
+            // printf("New sync: %d\n", LEDData.synchronise);
         }
 
-        if (currentPattern->period && timer >= currentPattern->period)
-        {
+        if (LEDData.period && timer >= LEDData.period && LEDData.ledPattern->numberOfColours != 1) {
             timer = 0;
-            patternChanged = 1;
+            patternChanged = true;
 
-            if (currentPattern->direction)
-            {
-                LED_Shift_Forward();
+            if (LEDData.ledPattern->numberOfColours > 1) {
+                if (LEDData.direction == Forwards) {
+                    LED_Shift_Forward();
+                } else {
+                    LED_Shift_Backward();
+                }
             }
-            else
-            {
-                LED_Shift_Backward();
-            }
-        }
-        else if (xQueueReceive(LEDConfig_Queue, &newPattern, 0))
-        {
-            memcpy(currentPattern, newPattern, sizeof(LED_Pattern));
-            currentOffset = 0;
-            patternChanged = 1;
+
+        } else if (xQueueReceive(LEDConfig_Queue, &LEDData.ledPattern, 0)) {
+            // printf("h: %d, s: %d, v: %d, \n", LEDData.ledPattern->colours[0]->hue, LEDData.ledPattern->colours[0]->saturation, LEDData.ledPattern->colours[0]->value);
+            // printf("h: %d, s: %d, v: %d, \n", customColours[0]->hue, customColours[0]->saturation, customColours[0]->value);
+            patternChanged = true;
             LED_Create_Pattern();
-        }
-        else if (xQueueReceive(LEDBrightness_Queue, &newBrightness, 0))
-        {
-            if (brightness != newBrightness)
-            {
-                patternChanged = 1;
-                brightness = newBrightness;
+        } else if (xQueueReceive(LEDBrightness_Queue, &newBrightness, 0)) {
+            if (LEDData.brightness != newBrightness) {
+                LEDData.brightness = newBrightness;
+                patternChanged = true;
                 LED_Create_Pattern();
             }
         }
 
-        // portTICK_PERIOD_MS == 1
-        if (patternChanged) LED_Comms_Send();
+        if (patternChanged) LED_Comms_Send(LEDData.coloursRGB, LEDData.arraySize);
 
         vTaskDelay(1);
-        // taskYIELD();
+
         timer++;
-        patternChanged = 0;
+        patternChanged = false;
     }
 }
 
 // Very inacurate only up to 255
-// static uint8_t fast_square_root(int number)
-// {
-//     for (int i = 17; i < 256; i += 17)
-//     {
-//         if (number <= square_lookup[i])
-//         {
-//             while (number <= square_lookup[i])
-//             {
+// static uint8_t fast_square_root(int number) {
+//     for (uint32_t i = 17; i < 256; i += 17) {
+//         if (number <= square_lookup[i]) {
+//             while (number <= square_lookup[i]) {
 //                 if (number >= square_lookup[i]) return (uint8_t) i;
 //                 i--;
 //             }

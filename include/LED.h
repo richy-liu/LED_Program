@@ -11,62 +11,34 @@ extern "C" {
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
-// #define NUMBER_OF_LEDS              30
+#include "Pattern_Defines.h"
+
+// #define NUMBER_OF_LEDS              10
 #define NUMBER_OF_LEDS              180
-#define MAXIMUM_COLOURS             10
+// #define NUMBER_OF_LEDS              00
+// #define MAXIMUM_COLOURS             10
 #define LAST_LED_INDEX              (NUMBER_OF_LEDS - 1)
 
 #define MAXIMUM_PERIOD              5000 // milliseconds
 #define MINIMUM_PERIOD              2 // milliseconds
 // #define SPEED_DIVISON_INTERVAL      (MAXIMUM_PERIOD / 100)
 
-typedef struct LED_Data
-{
-    uint8_t* red;
-    uint8_t* green;
-    uint8_t* blue;
-} LED_Data;
-
-typedef struct LED_Colour_RGB
-{
-    uint8_t red;
-    uint8_t green;
-    uint8_t blue;
-} LED_Colour_RGB;
-
-typedef struct LED_Colour
-{
-    uint8_t hue;
-    uint8_t saturation;
-    uint8_t value;
-} LED_Colour;
-
-enum LED_Pattern_Type
-{
-    Pattern_Type_Repeating,
-    Pattern_Type_Wave,
+enum Direction {
+    Forwards = 0,
+    Backwards = 1,
 };
 
-typedef struct LED_Pattern
-{
-    enum LED_Pattern_Type patternType;
-    uint16_t period;
-    LED_Colour** colours;
-    uint8_t numberOfColours;
+extern QueueHandle_t LEDConfig_Queue, LEDPeriod_Queue, LEDBrightness_Queue, LEDReverse_Queue, LEDSynchronise_Queue;
 
-    uint8_t direction;
-    uint8_t cycles;
-    bool syncronised;
-} LED_Pattern;
-
-extern QueueHandle_t LEDConfig_Queue, LEDPeriod_Queue, LEDBrightness_Queue;
-extern SemaphoreHandle_t LEDReverse_Semaphore, LEDSyncronise_Semaphore;
+extern LED_Pattern customPattern;
 
 void LED_Init(void);
 void LED_Turn_Off(void);
 void LED_Task(void *pvParameters);
 uint16_t LED_Get_Period(void);
 uint8_t LED_Get_Brightness(void);
+enum Direction LED_Get_Direction(void);
+bool LED_Get_Synchronise(void);
 
 #ifdef __cplusplus
 }

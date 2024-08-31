@@ -34,8 +34,7 @@ static bool connectedBit = 0;
 static char ipAddress[20];
 
 static void event_handler(void* arg, esp_event_base_t event_base,
-                                int32_t event_id, void* event_data)
-{
+                                int32_t event_id, void* event_data) {
     if (event_base == WIFI_EVENT && event_id == WIFI_EVENT_STA_DISCONNECTED) {
         connected = 0;
         ESP_LOGI(TAG,"Connect to WiFi failed");
@@ -48,8 +47,7 @@ static void event_handler(void* arg, esp_event_base_t event_base,
     }
 }
 
-void wifi_init_sta(void)
-{
+void wifi_init_sta(void) {
     s_wifi_event_group = xEventGroupCreate();
 
     ESP_ERROR_CHECK(esp_netif_init());
@@ -83,38 +81,29 @@ void wifi_init_sta(void)
 void WiFi_Task(void *pvParameters) {
     wifi_init_sta();
 
-    while (1)
-    {
-        if (!connected)
-        {
+    while (1) {
+        if (!connected) {
+            gpio_set_level(5, 0);
             esp_wifi_connect();
-            for (int i = 0; i < WIFI_TIMEOUT_SECONDS; i++)
-            {
-                if (connected)
-                {
+            for (int i = 0; i < WIFI_TIMEOUT_SECONDS; i++) {
+                if (connected) {
                     i = WIFI_TIMEOUT_SECONDS;
-                }
-                else
-                {
+                } else {
                     vTaskDelay(1000 / portTICK_PERIOD_MS);
                 }
             }
-            if (!connected)
-            {
+            if (!connected) {
                 printf("not connected\n");
             }
-        }
-        else
-        {
+        } else {
             gpio_set_level(5, 1);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelay(1 / portTICK_PERIOD_MS);
             gpio_set_level(5, 0);
-            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            vTaskDelay(15 / portTICK_PERIOD_MS);
         }
     }
 }
 
-bool WiFi_Get_Connected(void)
-{
+bool WiFi_Get_Connected(void) {
     return connected;
 }
